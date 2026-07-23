@@ -181,20 +181,44 @@ def fetch_job_detail_fallback(cid, job_id, url):
     ctx = _ssl.create_default_context()
     ua = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"}
     _t0 = time.time()
-    _MAX_FALLBACK_SECS = 20
+    _MAX_FALLBACK_SECS = 10
 
     try:
-        if cid == "bytedance":
-            # Page through search API (start from page 11, up to 15 more pages = 450 extra jobs)
+        if cid == "tencent":
+            # Tencent Detail API deprecated (404) — page through Query API
+            import urllib.parse as up
+            for pg in range(1, 6):
+                if time.time() - _t0 > _MAX_FALLBACK_SECS: break
+                q = up.urlencode({"keyword": "", "pageIndex": pg, "pageSize": 100, "language": "zh-cn"})
+                req = _urllib.Request(f"https://careers.tencent.com/tencentcareer/api/post/Query?{q}", headers=ua)
+                d = json.load(_urllib.urlopen(req, timeout=10, context=ctx))
+                posts = ((d.get("Data") or {}).get("Posts")) or []
+                if not posts:
+                    break
+                for j in posts:
+                    if str(j.get("PostId", "")) == job_id:
+                        return {"title": j.get("RecruitPostName", ""), "company": "腾讯",
+                                "location": j.get("LocationName", ""),
+                                "dept": j.get("CategoryName", "") or j.get("BGName", ""),
+                                "date": j.get("LastUpdateTime", ""),
+                                "jd": j.get("Responsibility", ""),
+                                "url": j.get("PostURL", url), "id": job_id}
+                count = ((d.get("Data") or {}).get("Count") or 0)
+                if len(posts) < 100 or pg * 100 >= count:
+                    break
+            return None
+
+        elif cid == "bytedance":
+            # Page through search API starting from page 0
             api = "https://jobs.bytedance.com/api/v1/search/job/posts"
             head = {**ua, "Content-Type": "application/json", "portal-channel": "office", "portal-platform": "pc"}
-            for page in range(10, 25):
+            for page in range(0, 8):
                 if time.time() - _t0 > _MAX_FALLBACK_SECS: break
                 body = json.dumps({"keyword": "", "limit": 30, "offset": page * 30,
                         "job_category_id_list": [], "location_code_list": [],
                         "subject_id_list": [], "recruitment_id_list": []}).encode()
                 req = _urllib.Request(api, data=body, headers=head)
-                d = json.load(_urllib.urlopen(req, timeout=15, context=ctx))
+                d = json.load(_urllib.urlopen(req, timeout=10, context=ctx))
                 posts = (d.get("data") or {}).get("job_post_list") or []
                 if not posts:
                     break
@@ -211,47 +235,32 @@ def fetch_job_detail_fallback(cid, job_id, url):
                     break
             return None
 
-        elif cid == "tencent":
-            # Tencent detail API
-            detail_url = f"https://careers.tencent.com/tencentcareer/api/post/Detail?postId={job_id}&language=zh-cn"
-            req = _urllib.Request(detail_url, headers=ua)
-            d = json.load(_urllib.urlopen(req, timeout=15, context=ctx))
-            post = (d.get("Data") or {})
-            if post:
-                return {"title": post.get("RecruitPostName", ""), "company": "腾讯",
-                        "location": post.get("LocationName", ""),
-                        "dept": post.get("CategoryName", "") or post.get("BGName", ""),
-                        "date": post.get("LastUpdateTime", ""),
-                        "jd": post.get("Responsibility", ""),
-                        "url": post.get("PostURL", url), "id": job_id}
-            return None
-
         elif cid == "xiaohongshu":
-            # Page through Xiaohongshu API (start from page 4, up to 10 more pages)
+            # Page through Xiaohongshu API starting from page 1
             api = "https://job.xiaohongshu.com/websiterecruit/position/pageQueryPosition"
-            for page in range(4, 15):
+            for page in range(1, 6):
                 if time.time() - _t0 > _MAX_FALLBACK_SECS: break
-                body = json.dumps({"pageNo": page, "pageSize": 100, "keyword": ""}).encode()
+                body = json.dumps({"pageNum": page, "pageSize": 100, "keyword": ""}).encode()
                 req = _urllib.Request(api, data=body, headers={**ua, "Content-Type": "application/json"})
-                d = json.load(_urllib.urlopen(req, timeout=15, context=ctx))
-                positions = d.get("data", {}).get("positionInfoList", [])
+                d = json.load(_urllib.urlopen(req, timeout=10, context=ctx))
+                positions = d.get("data", {}).get("list", [])
                 if not positions:
                     break
                 for j in positions:
                     if str(j.get("positionId", "")) == job_id:
                         pt = _fmt_ts(j.get("publishTime", ""))
                         return {"title": j.get("positionName", ""), "company": "小红书",
-                                "location": j.get("workLocation", ""), "dept": j.get("department", ""),
-                                "date": pt, "jd": j.get("jobDescription", ""), "url": url, "id": job_id}
+                                "location": j.get("workplace", ""), "dept": j.get("jobType", ""),
+                                "date": pt, "jd": j.get("duty", ""), "url": url, "id": job_id}
                 if len(positions) < 100:
                     break
             return None
 
         elif cid == "kuaishou":
-            # Page through Kuaishou signed API (start from page 11, up to 15 more pages)
+            # Page through Kuaishou signed API starting from page 1
             import hmac, hashlib
             SECRET = "652f962a-0575-4575-98d2-f04e2291bee2"
-            for page in range(11, 25):
+            for page in range(1, 8):
                 if time.time() - _t0 > _MAX_FALLBACK_SECS: break
                 params = {"pageSize": "20", "pageNumber": str(page), "jobType": "2", "cityCode": "", "keyword": ""}
                 canonical = "&".join(f"{k}={v}" for k, v in sorted(params.items()))
@@ -259,7 +268,7 @@ def fetch_job_detail_fallback(cid, job_id, url):
                 sign = hmac.new(SECRET.encode(), (ts + canonical + SECRET).encode(), hashlib.sha256).hexdigest()
                 query = canonical + f"&signTimestamp={ts}&sign={sign}"
                 req = _urllib.Request(f"https://zhaopin.kuaishou.cn/recruit/e/api/v1/open/positions/simple?{query}", headers=ua)
-                d = json.load(_urllib.urlopen(req, timeout=15, context=ctx))
+                d = json.load(_urllib.urlopen(req, timeout=10, context=ctx))
                 positions = d.get("data", {}).get("positions", [])
                 if not positions:
                     break
@@ -275,30 +284,41 @@ def fetch_job_detail_fallback(cid, job_id, url):
             return None
 
         elif cid in ("highflyer", "moonshot"):
-            # Moka companies - use subprocess with more pages
+            # Moka companies - direct API fetch (first 2 pages only for speed)
             org_id = "high-flyer" if cid == "highflyer" else "moonshot"
             site_id = "140576" if cid == "highflyer" else "148506"
-            env = os.environ.copy()
-            result = subprocess.run(
-                [PYTHON_BIN, os.path.join(PROJECT_DIR, "parsers/moka.py"), org_id, site_id, COMPANIES[cid]["name"], "", "20"],
-                capture_output=True, text=True, timeout=60, cwd=PROJECT_DIR, env=env
-            )
-            if result.returncode == 0:
-                data = json.loads(result.stdout)
-                for j in data:
+            from Crypto.Cipher import AES
+            from Crypto.Util.Padding import unpad
+            import base64
+            IV = b'de7c21ed8d6f50fe'
+            moka_head = {**ua, "Content-Type": "application/json", "Accept": "application/json", "Origin": "https://app.mokahr.com"}
+            for offset in (0, 50):
+                if time.time() - _t0 > _MAX_FALLBACK_SECS: break
+                body = json.dumps({"orgId": org_id, "siteId": int(site_id), "locale": "zh-CN", "limit": 50, "offset": offset}).encode()
+                req = _urllib.Request("https://app.mokahr.com/api/outer/ats-apply/website/jobs/v2", data=body, headers=moka_head)
+                resp = json.load(_urllib.urlopen(req, timeout=10, context=ctx))
+                if "necromancer" in resp:
+                    key = resp["necromancer"].encode()
+                    pt = unpad(AES.new(key, AES.MODE_CBC, IV).decrypt(base64.b64decode(resp["data"])), 16)
+                    resp = json.loads(pt.decode("utf-8"))
+                data = resp.get("data", resp)
+                jobs = data.get("jobs") or data.get("list") or []
+                if not jobs:
+                    break
+                for j in jobs:
                     if str(j.get("id", "")) == job_id:
                         return {**j, "url": url, "id": job_id}
             return None
 
         elif cid in ("zhipu", "minimax"):
-            # Feishu companies - direct API paging (start from page 11, up to 15 more pages)
+            # Feishu companies - direct API paging starting from page 0
             subdomain = "zhipu-ai" if cid == "zhipu" else "vrfi1sk8a0"
             api = f"https://{subdomain}.jobs.feishu.cn/api/v1/search/job/posts"
-            for page in range(10, 25):
+            for page in range(0, 8):
                 if time.time() - _t0 > _MAX_FALLBACK_SECS: break
                 body = json.dumps({"keyword": "", "offset": page * 30, "limit": 30}).encode()
                 req = _urllib.Request(api, data=body, headers={**ua, "Content-Type": "application/json"})
-                d = json.load(_urllib.urlopen(req, timeout=15, context=ctx))
+                d = json.load(_urllib.urlopen(req, timeout=10, context=ctx))
                 posts = d.get("data", {}).get("job_post_list", [])
                 if not posts:
                     break
@@ -315,11 +335,11 @@ def fetch_job_detail_fallback(cid, job_id, url):
             return None
 
         elif cid == "alibaba":
-            # Alibaba - use subprocess with more pages
+            # Alibaba - single large page request (pageSize=500)
             env = os.environ.copy()
             result = subprocess.run(
-                [PYTHON_BIN, os.path.join(PROJECT_DIR, "parsers/alibaba.py"), "", "40", "talent.alibaba.com"],
-                capture_output=True, text=True, timeout=90, cwd=PROJECT_DIR, env=env
+                [PYTHON_BIN, os.path.join(PROJECT_DIR, "parsers/alibaba.py"), "", "1", "talent.alibaba.com"],
+                capture_output=True, text=True, timeout=15, cwd=PROJECT_DIR, env=env
             )
             if result.returncode == 0:
                 data = json.loads(result.stdout)
@@ -346,14 +366,16 @@ def lookup_job(url):
             break
     job_id = extract_job_id(url, patterns)
 
-    # Fetch company jobs (uses cache)
-    _, jobs, _ = fetch_company(cid)
-
-    # Match by job id or URL containment
+    # Step 1: Check cache (fast if warm)
     match = None
-    if jobs:
+    cached_jobs = None
+    with _cache_lock:
+        if cid in _cache and time.time() - _cache[cid]["time"] < CACHE_TTL:
+            cached_jobs = _cache[cid]["data"]
+
+    if cached_jobs:
         if job_id:
-            for j in jobs:
+            for j in cached_jobs:
                 if str(j.get("id", "")) == job_id:
                     match = j; break
                 if str(j.get("post_id", "")) == job_id:
@@ -364,12 +386,12 @@ def lookup_job(url):
                 if job_id in job_url:
                     match = j; break
         else:
-            for j in jobs:
+            for j in cached_jobs:
                 job_url = j.get("url", "") or ""
                 if job_url and job_url in url:
                     match = j; break
 
-    # Fallback: fetch directly from company API
+    # Step 2: If not in cache, try fallback directly (skip slow full-company fetch)
     if not match and job_id:
         sys.stderr.write(f"[lookup] cache miss for {cid} job_id={job_id}, trying direct API...\n")
         match = fetch_job_detail_fallback(cid, job_id, url)
@@ -377,7 +399,11 @@ def lookup_job(url):
     if not match:
         return None, f"未在 {COMPANIES[cid]['name']} 找到该链接对应的职位，可能已下架"
 
-    # Enrich match same as in /api/jobs
+    return _enrich_match(match, cid, url)
+
+
+def _enrich_match(match, cid, url):
+    """Add company metadata and computed fields to a matched job."""
     match["_company_id"] = cid
     match["_company_color"] = COMPANIES[cid]["color"]
     match["_company_name"] = COMPANIES[cid]["name"]
@@ -510,6 +536,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
         all_jobs = []
         company_stats = {}
+        seen_urls = set()
         for cid in company_ids:
             jobs = results.get(cid, [])
             company_stats[cid] = {
@@ -519,6 +546,11 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 "url": COMPANIES[cid]["url"],
             }
             for j in jobs:
+                # Deduplicate by URL (or company+id if no URL)
+                dedup_key = j.get("url", "") or f"{cid}:{j.get('id', '')}"
+                if dedup_key in seen_urls:
+                    continue
+                seen_urls.add(dedup_key)
                 j["_company_id"] = cid
                 j["_company_color"] = COMPANIES[cid]["color"]
                 j["_company_name"] = COMPANIES[cid]["name"]
@@ -547,22 +579,27 @@ class Handler(http.server.BaseHTTPRequestHandler):
                        or kw in j.get("description", "").lower()
                        or kw in j.get("dept", "").lower()]
 
+        # ===== Compute stats from FULL dataset (before days filter) =====
+        today = datetime.now().date()
+        stat_today = sum(1 for j in all_jobs if j["_days_ago"] == 0)
+        stat_3day = sum(1 for j in all_jobs if j["_days_ago"] < 3)
+        stat_7day = sum(1 for j in all_jobs if j["_days_ago"] < 7)
+        stat_30day = sum(1 for j in all_jobs if j["_days_ago"] < 30)
+
         if days > 0:
             all_jobs = [j for j in all_jobs if j["_days_ago"] < days]
 
         all_jobs.sort(key=lambda x: x.get("_days_ago", 9999))
-
-        today = datetime.now().date()
-        today_count = sum(1 for j in all_jobs if parse_date(j.get("date", "")) and parse_date(j.get("date", "")).date() == today)
-        week_count = sum(1 for j in all_jobs if j.get("_days_ago", 9999) < 7)
 
         self._send(200, {
             "jobs": all_jobs,
             "total": len(all_jobs),
             "stats": {
                 "total": len(all_jobs),
-                "today": today_count,
-                "this_week": week_count,
+                "today": stat_today,
+                "d3": stat_3day,
+                "d7": stat_7day,
+                "d30": stat_30day,
                 "by_company": company_stats,
             },
             "errors": errors,

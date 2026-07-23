@@ -72,13 +72,14 @@ def _get_token_and_cookies(domain):
     return token, xsrf, channel, opener
 
 
-def fetch(keyword="", pages=10, size=20, domain="talent.alibaba.com"):
+def fetch(keyword="", pages=1, size=500, domain="talent.alibaba.com"):
     token, xsrf, channel, opener = _get_token_and_cookies(domain)
     if not token:
         sys.stderr.write(f"[alibaba] 未能从 {domain} 提取 __token__，页面结构可能已变\n")
         return []
 
     out = []
+    seen = set()
     for pg in range(1, pages + 1):
         body = json.dumps({
             "pageNo": pg,
@@ -117,6 +118,9 @@ def fetch(keyword="", pages=10, size=20, domain="talent.alibaba.com"):
 
         for j in datas:
             jid = str(j.get("id", ""))
+            if jid in seen:
+                continue
+            seen.add(jid)
             locs = j.get("workLocations") or []
             location = ", ".join(locs) if isinstance(locs, list) else str(locs)
             cats = j.get("categories") or []
@@ -145,7 +149,7 @@ def fetch(keyword="", pages=10, size=20, domain="talent.alibaba.com"):
 
 if __name__ == "__main__":
     kw = sys.argv[1] if len(sys.argv) > 1 else ""
-    pg = int(sys.argv[2]) if len(sys.argv) > 2 else 10
+    pg = int(sys.argv[2]) if len(sys.argv) > 2 else 1
     dom = sys.argv[3] if len(sys.argv) > 3 else "talent.alibaba.com"
     if not re.fullmatch(r"[a-z0-9.\-]+", dom):
         sys.exit("[alibaba] domain 非法（防 SSRF）")

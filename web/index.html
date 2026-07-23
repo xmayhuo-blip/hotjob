@@ -101,9 +101,8 @@ body {
 .stat-card {
   background: var(--card); border-radius: var(--radius); padding: 20px 24px;
   min-width: 110px; text-align: center; box-shadow: var(--shadow);
-  border: 1px solid var(--border); transition: transform 0.15s, box-shadow 0.15s;
+  border: 1px solid var(--border);
 }
-.stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-hover); }
 .stat-card .icon {
   width: 32px; height: 32px; border-radius: 50%; margin: 0 auto 10px;
   display: flex; align-items: center; justify-content: center;
@@ -111,6 +110,7 @@ body {
 }
 .stat-card .num {
   font-size: 32px; font-weight: 700; color: var(--primary); line-height: 1;
+  display: block;
 }
 .stat-card .label {
   font-size: 12px; color: var(--text-3); margin-top: 8px;
@@ -512,6 +512,7 @@ body {
     </select>
     <select class="filter-select" id="daysSelect">
       <option value="0">全部时间</option>
+      <option value="1">今日</option>
       <option value="3">近3天</option>
       <option value="7" selected>近7天</option>
       <option value="14">近14天</option>
@@ -706,12 +707,11 @@ async function fetchData() {
 }
 
 function renderStats(data) {
-  const jobs = state.jobs || [];
-  const today = new Date(); today.setHours(0,0,0,0);
-  document.getElementById('statToday').textContent = jobs.filter(j => j._days_ago === 0).length;
-  document.getElementById('stat3Day').textContent = jobs.filter(j => (j._days_ago || 9999) < 3).length;
-  document.getElementById('stat7Day').textContent = jobs.filter(j => (j._days_ago || 9999) < 7).length;
-  document.getElementById('stat30Day').textContent = jobs.filter(j => (j._days_ago || 9999) < 30).length;
+  const s = (data.stats || {});
+  document.getElementById('statToday').textContent = s.today ?? '-';
+  document.getElementById('stat3Day').textContent = s.d3 ?? '-';
+  document.getElementById('stat7Day').textContent = s.d7 ?? '-';
+  document.getElementById('stat30Day').textContent = s.d30 ?? '-';
 }
 
 // ===== Filtering =====

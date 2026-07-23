@@ -25,9 +25,10 @@ HEAD = {
 
 def fetch(keyword="", pages=9, size=100, recruit_type="social"):
     out = []
+    seen = set()
     for pg in range(1, pages + 1):
         body = json.dumps({
-            "pageNo": pg,
+            "pageNum": pg,
             "pageSize": size,
             "recruitType": recruit_type,
             "keyword": keyword or "",
@@ -40,6 +41,9 @@ def fetch(keyword="", pages=9, size=100, recruit_type="social"):
             break
         for j in items:
             pid = str(j.get("positionId", ""))
+            if pid in seen:
+                continue
+            seen.add(pid)
             duty = j.get("duty", "")
             qual = j.get("qualification", "")
             jd = "\n\n".join(x for x in [duty, qual] if x)
@@ -54,7 +58,8 @@ def fetch(keyword="", pages=9, size=100, recruit_type="social"):
                 "id": pid,
             })
         total = data.get("total", 0)
-        if len(items) < size or pg * size >= total:
+        total_page = data.get("totalPage", 0)
+        if len(items) < size or (total_page and pg >= total_page) or (total and pg * size >= total):
             break
     return out
 
