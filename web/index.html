@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OfferBoast 岗位雷达 — 新鲜出炉岗位</title>
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="512x512" href="/favicon-512x512.png">
+<style>
+:root {
+  --primary: #4A90D9;
+  --primary-light: #E8F4FD;
+  --primary-hover: #3A7BC8;
+  --bg: #F5F7FA;
+  --card: #FFFFFF;
+  --text: #1A1A1A;
+  --text-2: #555555;
+  --text-3: #888888;
+  --border: #EBEEF5;
+  --border-2: #E0E5EF;
+  --success: #34C759;
+  --warning: #FF9500;
+  --danger: #FF3B30;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --shadow: 0 1px 3px rgba(0,0,0,0.04), 0 6px 20px rgba(0,0,0,0.04);
+  --shadow-hover: 0 4px 12px rgba(0,0,0,0.08);
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  background: var(--bg); color: var(--text); line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ===== Top Navigation ===== */
+.top-nav {
+  background: var(--card); border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; z-index: 200;
+}
+.top-nav .nav-inner {
+  max-width: 1280px; margin: 0 auto; padding: 0 24px;
+  height: 60px; display: flex; align-items: center; justify-content: space-between;
+}
+.brand {
+  font-size: 20px; font-weight: 700; color: var(--primary);
+  display: flex; align-items: center; gap: 8px;
+}
+.brand::before {
+  content: "◎"; font-size: 18px; opacity: 0.9;
+}
+.nav-tabs {
+  display: flex; gap: 8px;
+  position: absolute; left: 50%; transform: translateX(-50%);
+}
+.nav-tab {
+  padding: 8px 16px; border-radius: 20px; border: none; background: transparent;
+  font-size: 14px; color: var(--text-2); cursor: pointer; transition: all 0.15s;
+  font-weight: 500;
+}
+.nav-tab:hover { color: var(--text); background: var(--bg); }
+.nav-tab.active { color: var(--primary); background: var(--primary-light); }
+.update-time {
+  font-size: 12px; color: var(--text-3);
+}
+
+/* ===== Layout ===== */
+.page { max-width: 1280px; margin: 0 auto; padding: 24px; }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* ===== Hero ===== */
+.hero {
+  background: linear-gradient(135deg, #F8FAFF 0%, #F0F5FF 50%, #F8F5FF 100%);
+  border-radius: var(--radius); padding: 40px;
+  display: flex; align-items: center; justify-content: space-between; gap: 40px;
+  margin-bottom: 20px; border: 1px solid var(--border);
+}
+.hero-left { flex: 1; }
+.hero-tag {
+  display: inline-flex; align-items: center; gap: 6px;
+  color: var(--primary); font-size: 13px; font-weight: 600;
+  background: var(--primary-light); padding: 5px 12px; border-radius: 20px; margin-bottom: 16px;
+}
+.hero h1 {
+  font-size: 42px; font-weight: 700; line-height: 1.15; color: var(--text);
+  margin-bottom: 16px; letter-spacing: -0.5px;
+}
+.hero p {
+  font-size: 14px; color: var(--text-2); line-height: 1.7;
+  max-width: 420px;
+}
+.hero-right { flex-shrink: 0; }
+.stat-cards {
+  display: flex; gap: 12px;
+}
+.stat-card {
+  background: var(--card); border-radius: var(--radius); padding: 20px 24px;
+  min-width: 110px; text-align: center; box-shadow: var(--shadow);
+  border: 1px solid var(--border); transition: transform 0.15s, box-shadow 0.15s;
+}
+.stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-hover); }
+.stat-card .icon {
+  width: 32px; height: 32px; border-radius: 50%; margin: 0 auto 10px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--primary-light); color: var(--primary); font-size: 14px;
+}
+.stat-card .num {
+  font-size: 32px; font-weight: 700; color: var(--primary); line-height: 1;
+}
+.stat-card .label {
+  font-size: 12px; color: var(--text-3); margin-top: 8px;
+}
+.stat-card .sub {
+  font-size: 11px; color: var(--text-3); margin-top: 4px;
+}
+
+/* ===== Filter Bar ===== */
+.filter-bar {
+  background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow);
+  padding: 14px 16px; margin-bottom: 16px; border: 1px solid var(--border);
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+}
+.search-box {
+  flex: 1; min-width: 200px; position: relative;
+}
+.search-box input {
+  width: 100%; padding: 9px 12px 9px 36px; border: 1px solid var(--border-2);
+  border-radius: var(--radius-sm); font-size: 13px; outline: none;
+  background: var(--bg); color: var(--text); transition: all 0.15s;
+}
+.search-box input:focus { border-color: var(--primary); background: var(--card); }
+.search-box .icon {
+  position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+  font-size: 14px; color: var(--text-3);
+}
+.filter-select {
+  padding: 9px 28px 9px 12px; border: 1px solid var(--border-2); border-radius: var(--radius-sm);
+  font-size: 13px; cursor: pointer; outline: none; background: var(--bg); color: var(--text-2);
+  transition: all 0.15s; appearance: none; -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 8px center; background-size: 12px;
+}
+.filter-select:hover { border-color: #D0D8E8; color: var(--text); }
+.filter-select:focus { border-color: var(--primary); background: var(--card); }
+.btn-clear {
+  padding: 9px 14px; border: 1px solid var(--border-2); border-radius: var(--radius-sm);
+  background: var(--card); cursor: pointer; font-size: 13px; color: var(--text-2);
+  transition: all 0.15s; white-space: nowrap;
+}
+.btn-clear:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-light); }
+
+/* ===== Content Split ===== */
+.content-split {
+  display: grid; grid-template-columns: 1fr 360px; gap: 16px; align-items: start;
+}
+
+/* ===== Jobs Table ===== */
+.jobs-table-area {
+  background: var(--card); border-radius: var(--radius); border: 1px solid var(--border);
+  box-shadow: var(--shadow); overflow: hidden;
+}
+.table-header {
+  display: grid; grid-template-columns: minmax(0, 2fr) 110px 90px 110px 40px;
+  padding: 12px 20px; background: #FAFBFC; border-bottom: 1px solid var(--border);
+  font-size: 12px; color: var(--text-3); font-weight: 600;
+}
+.job-row {
+  display: grid; grid-template-columns: minmax(0, 2fr) 110px 90px 110px 40px;
+  padding: 16px 20px; border-bottom: 1px solid var(--border);
+  cursor: pointer; transition: background 0.12s; align-items: center;
+}
+.job-row:last-child { border-bottom: none; }
+.job-row:hover { background: #FAFBFC; }
+.job-row.active { background: var(--primary-light); }
+.job-info .title-row {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 6px; flex-wrap: wrap;
+}
+.job-info .title {
+  font-size: 14px; font-weight: 600; color: var(--text); line-height: 1.4;
+}
+.job-info .meta {
+  font-size: 12px; color: var(--text-3); display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+}
+.job-info .meta .company {
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.job-info .meta .dot {
+  width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+}
+.job-info .desc {
+  font-size: 12px; color: var(--text-3); margin-top: 6px;
+  display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden;
+  line-height: 1.5;
+}
+.rt-badge {
+  display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 600;
+  background: var(--primary-light); color: var(--primary);
+}
+.rt-badge.campus { background: #FFF3E0; color: #E67E22; }
+.cell { font-size: 13px; color: var(--text-2); }
+.cell.date { display: flex; align-items: center; gap: 8px; }
+.days-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 8px; border-radius: 20px; font-size: 11px; font-weight: 600;
+  background: #E8F5E9; color: var(--success);
+}
+.days-badge.warn { background: #FFF8E1; color: var(--warning); }
+.days-badge.old { background: #FFEBEE; color: var(--danger); }
+.days-badge::before {
+  content: ""; width: 5px; height: 5px; border-radius: 50%; background: currentColor;
+}
+.cell-arrow { color: var(--text-3); font-size: 12px; text-align: right; }
+
+/* ===== Pagination ===== */
+.pagination {
+  display: flex; align-items: center; justify-content: flex-end; gap: 8px;
+  padding: 12px 20px; border-top: 1px solid var(--border); font-size: 13px; color: var(--text-2);
+}
+.pagination button {
+  padding: 6px 12px; border: 1px solid var(--border-2); border-radius: var(--radius-sm);
+  background: var(--card); cursor: pointer; color: var(--text-2); transition: all 0.15s;
+}
+.pagination button:hover:not(:disabled) { border-color: var(--primary); color: var(--primary); }
+.pagination button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ===== Detail Panel ===== */
+.detail-panel {
+  background: var(--card); border-radius: var(--radius); border: 1px solid var(--border);
+  box-shadow: var(--shadow); min-height: 400px; position: sticky; top: 76px;
+  display: flex; flex-direction: column;
+}
+.detail-empty {
+  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 40px 24px; color: var(--text-3); text-align: center;
+}
+.detail-empty .icon {
+  width: 56px; height: 56px; border-radius: 50%; background: var(--bg);
+  display: flex; align-items: center; justify-content: center; font-size: 24px; margin-bottom: 16px;
+}
+.detail-empty .title { font-size: 14px; font-weight: 600; color: var(--text-2); margin-bottom: 4px; }
+.detail-empty .sub { font-size: 12px; color: var(--text-3); }
+.detail-header {
+  padding: 20px; border-bottom: 1px solid var(--border);
+}
+.detail-header .top {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 10px;
+}
+.detail-header .title { font-size: 16px; font-weight: 700; color: var(--text); line-height: 1.4; }
+.detail-header .close { background: none; border: none; font-size: 18px; color: var(--text-3); cursor: pointer; }
+.detail-header .close:hover { color: var(--text); }
+.detail-header .meta {
+  display: flex; flex-wrap: wrap; gap: 12px; font-size: 13px; color: var(--text-2);
+}
+.detail-header .meta span { display: flex; align-items: center; gap: 4px; }
+.detail-body {
+  flex: 1; padding: 20px; overflow-y: auto; max-height: 520px;
+}
+.detail-body h4 {
+  font-size: 13px; font-weight: 700; color: var(--text); margin: 20px 0 10px;
+}
+.detail-body h4:first-child { margin-top: 0; }
+.detail-body p, .detail-body li {
+  font-size: 13px; color: var(--text-2); line-height: 1.8;
+}
+.detail-body ul { padding-left: 18px; }
+.detail-body .placeholder {
+  font-size: 13px; color: var(--text-3); line-height: 1.8; font-style: italic;
+}
+.detail-footer {
+  padding: 16px 20px; border-top: 1px solid var(--border);
+}
+.detail-footer .btn-primary {
+  width: 100%; padding: 11px; border: none; border-radius: var(--radius-sm);
+  background: var(--primary); color: #fff; font-size: 14px; font-weight: 600;
+  cursor: pointer; transition: background 0.15s; text-decoration: none; display: inline-block; text-align: center;
+}
+.detail-footer .btn-primary:hover { background: var(--primary-hover); }
+.detail-footer .btn-hint {
+  text-align: center; font-size: 11px; color: var(--text-3); margin-top: 8px;
+}
+
+/* ===== Loading & Empty ===== */
+.loading, .empty {
+  padding: 60px 20px; text-align: center; color: var(--text-3);
+}
+.spinner {
+  width: 36px; height: 36px; border: 3px solid var(--border);
+  border-top-color: var(--primary); border-radius: 50%;
+  animation: spin 0.8s linear infinite; margin: 0 auto 12px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.empty .icon { font-size: 40px; margin-bottom: 12px; }
+.empty .title { font-size: 14px; font-weight: 600; color: var(--text-2); margin-bottom: 4px; }
+
+/* ===== Link Lookup Tab ===== */
+.link-hero {
+  max-width: 720px; margin: 40px auto 0; text-align: center; padding: 0 20px;
+}
+.link-tag {
+  display: inline-flex; align-items: center; gap: 6px;
+  color: var(--primary); font-size: 13px; font-weight: 600;
+  background: var(--primary-light); padding: 5px 12px; border-radius: 20px; margin-bottom: 20px;
+}
+.link-hero h1 {
+  font-size: 36px; font-weight: 700; color: var(--text); margin-bottom: 12px; letter-spacing: -0.5px;
+}
+.link-hero p {
+  font-size: 14px; color: var(--text-2); line-height: 1.7; margin-bottom: 32px;
+}
+.link-input-wrap {
+  display: flex; gap: 10px; background: var(--card); padding: 8px;
+  border-radius: var(--radius); border: 1px solid var(--border); box-shadow: var(--shadow);
+}
+.link-input-wrap input {
+  flex: 1; border: none; background: transparent; padding: 10px 12px; font-size: 14px; outline: none;
+}
+.link-input-wrap button {
+  padding: 10px 24px; border: none; border-radius: var(--radius-sm);
+  background: var(--primary); color: #fff; font-size: 14px; font-weight: 600;
+  cursor: pointer; transition: background 0.15s; white-space: nowrap;
+}
+.link-input-wrap button:hover { background: var(--primary-hover); }
+.link-input-wrap button:disabled { opacity: 0.6; cursor: not-allowed; }
+.link-example {
+  margin-top: 12px; font-size: 12px; color: var(--text-3);
+}
+.link-example span { color: var(--primary); cursor: pointer; }
+.link-example span:hover { text-decoration: underline; }
+
+.link-result {
+  max-width: 720px; margin: 24px auto 0; text-align: left;
+  background: var(--card); border-radius: var(--radius); border: 1px solid var(--border);
+  box-shadow: var(--shadow); overflow: hidden; animation: fadeIn 0.3s ease;
+}
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.link-result .result-header {
+  padding: 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px;
+}
+.result-header .logo {
+  width: 40px; height: 40px; border-radius: 50%; background: var(--primary-light);
+  display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 16px; flex-shrink: 0;
+}
+.result-header .info { flex: 1; }
+.result-header .company { font-size: 12px; color: var(--text-3); margin-bottom: 2px; }
+.result-header .title { font-size: 15px; font-weight: 700; color: var(--text); }
+.link-result .result-grid {
+  display: grid; grid-template-columns: 1fr 1fr; border-bottom: 1px solid var(--border);
+}
+.result-grid .item {
+  padding: 20px; text-align: center;
+}
+.result-grid .item:first-child { border-right: 1px solid var(--border); }
+.result-grid .item .label { font-size: 12px; color: var(--text-3); margin-bottom: 6px; }
+.result-grid .item .value { font-size: 16px; font-weight: 700; color: var(--text); }
+.result-advice {
+  padding: 16px 20px; background: #FAFBFC; border-bottom: 1px solid var(--border);
+}
+.result-advice .title {
+  display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 6px;
+}
+.result-advice .desc { font-size: 12px; color: var(--text-2); line-height: 1.7; }
+.link-result .result-footer { padding: 16px 20px; }
+.link-result .result-footer .btn-primary {
+  width: 100%; padding: 11px; border: none; border-radius: var(--radius-sm);
+  background: var(--primary); color: #fff; font-size: 14px; font-weight: 600;
+  cursor: pointer; transition: background 0.15s; display: inline-block; text-align: center; text-decoration: none;
+}
+.link-result .result-footer .btn-primary:hover { background: var(--primary-hover); }
+
+/* ===== Footer ===== */
+.page-footer {
+  text-align: center; padding: 40px 20px 24px; color: var(--text-3); font-size: 12px;
+}
+
+/* ===== Company Pills (compact, inside filter bar) ===== */
+.company-pills {
+  display: flex; gap: 6px; flex-wrap: wrap;
+}
+.pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 6px 12px; border-radius: 20px; cursor: pointer;
+  font-size: 12px; font-weight: 500;
+  border: 1px solid var(--border-2);
+  background: var(--bg); color: var(--text-2);
+  transition: all 0.15s ease; user-select: none;
+}
+.pill .dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+.pill.active {
+  background: var(--primary); color: #fff; border-color: transparent;
+}
+.pill:not(.active):hover { background: #E8ECF4; color: var(--text); border-color: #D0D8E8; }
+
+/* ===== Responsive ===== */
+@media (max-width: 1024px) {
+  .content-split { grid-template-columns: 1fr; }
+  .detail-panel { position: static; max-height: none; }
+  .hero { flex-direction: column; align-items: flex-start; }
+  .hero-right { width: 100%; }
+  .stat-cards { justify-content: flex-start; overflow-x: auto; }
+}
+@media (max-width: 768px) {
+  .top-nav .nav-inner { padding: 0 16px; }
+  .nav-tabs { position: static; transform: none; margin-left: auto; margin-right: 12px; }
+  .update-time { display: none; }
+  .page { padding: 16px; }
+  .hero { padding: 24px; }
+  .hero h1 { font-size: 28px; }
+  .stat-card { padding: 14px 16px; min-width: 80px; }
+  .stat-card .num { font-size: 24px; }
+  .filter-bar { flex-direction: column; align-items: stretch; }
+  .search-box, .filter-select, .btn-clear { width: 100%; }
+  .table-header, .job-row { grid-template-columns: 1fr; gap: 6px; }
+  .table-header { display: none; }
+  .job-row { padding: 14px 16px; }
+  .cell-arrow { display: none; }
+  .link-hero h1 { font-size: 26px; }
+  .result-grid { grid-template-columns: 1fr; }
+  .result-grid .item:first-child { border-right: none; border-bottom: 1px solid var(--border); }
+}
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #D0D8E8; border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<header class="top-nav">
+  <div class="nav-inner">
+    <div class="brand">OfferBoast</div>
+    <nav class="nav-tabs">
+      <button class="nav-tab active" data-tab="latest">最新岗位</button>
+      <button class="nav-tab" data-tab="link">链接查时间</button>
+    </nav>
+    <div class="update-time" id="updateTime">更新于 --:--</div>
+  </div>
+</header>
+
+<main class="page">
+
+<!-- ===== Latest Jobs Tab ===== -->
+<section id="latestTab" class="tab-panel active">
+  <div class="hero">
+    <div class="hero-left">
+      <div class="hero-tag">社招 · 校招 · 实习</div>
+      <h1>你就是下一个<br>Offer Getter</h1>
+      <p>根据时间看哪些岗位是新发布的再投递，<br>投递发布已久的岗位不是你没能力，而是根本不招人！</p>
+    </div>
+    <div class="hero-right">
+      <div class="stat-cards">
+        <div class="stat-card">
+          <div class="icon">⚡</div>
+          <div class="num" id="statToday">-</div>
+          <div class="label">今日新增</div>
+        </div>
+        <div class="stat-card">
+          <div class="icon">◷</div>
+          <div class="num" id="stat3Day">-</div>
+          <div class="label">3天内</div>
+        </div>
+        <div class="stat-card">
+          <div class="icon">◎</div>
+          <div class="num" id="stat7Day">-</div>
+          <div class="label">7天内</div>
+        </div>
+        <div class="stat-card">
+          <div class="icon">☐</div>
+          <div class="num" id="stat30Day">-</div>
+          <div class="label">30天内</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="filter-bar">
+    <select class="filter-select" id="companySelect">
+      <option value="">全部公司</option>
+    </select>
+    <div class="search-box">
+      <span class="icon">🔍</span>
+      <input type="text" id="keywordInput" placeholder="搜索职位名称、团队或关键词">
+    </div>
+    <select class="filter-select" id="citySelect">
+      <option value="">全部城市</option>
+    </select>
+    <select class="filter-select" id="recruitTypeSelect">
+      <option value="">全部类型</option>
+      <option value="社招">社招</option>
+      <option value="校招">校招</option>
+    </select>
+    <select class="filter-select" id="functionSelect">
+      <option value="">全部职类</option>
+      <option value="产品">产品</option>
+      <option value="运营">运营</option>
+      <option value="算法">算法/AI</option>
+      <option value="开发">开发/工程</option>
+      <option value="设计">设计</option>
+      <option value="数据">数据</option>
+      <option value="测试">测试/QA</option>
+      <option value="市场">市场/品牌</option>
+      <option value="销售">销售/商务</option>
+      <option value="人力">人力资源</option>
+      <option value="运维">运维/DevOps</option>
+      <option value="安全">安全</option>
+      <option value="项目">项目管理</option>
+      <option value="其他">其他</option>
+    </select>
+    <select class="filter-select" id="daysSelect">
+      <option value="0">全部时间</option>
+      <option value="3">近3天</option>
+      <option value="7" selected>近7天</option>
+      <option value="14">近14天</option>
+      <option value="30">近30天</option>
+    </select>
+    <button class="btn-clear" id="clearFilters">清空筛选</button>
+  </div>
+
+  <div class="content-split">
+    <div class="jobs-table-area" id="jobsTableArea">
+      <div class="loading">
+        <div class="spinner"></div>
+        <p>正在获取岗位数据，请稍候...</p>
+      </div>
+    </div>
+    <aside class="detail-panel" id="detailPanel">
+      <div class="detail-empty">
+        <div class="icon">📄</div>
+        <div class="title">选择一个岗位查看 JD</div>
+        <div class="sub">岗位职责、任职要求和真实发布时间会在这里展示</div>
+      </div>
+    </aside>
+  </div>
+</section>
+
+<!-- ===== Link Lookup Tab ===== -->
+<section id="linkTab" class="tab-panel">
+  <div class="link-hero">
+    <div class="link-tag">真实发布时间</div>
+    <h1>这个岗位，还值得投吗？</h1>
+    <p>粘贴社招或校招岗位链接，OfferBoast 会帮你找出真实发布时间，<br>避免把精力投入到长期沉寂的岗位。</p>
+    <div class="link-input-wrap">
+      <input type="text" id="linkInput" placeholder="https://jobs.bytedance.com/experienced/position/.../detail">
+      <button id="linkBtn">解析链接</button>
+    </div>
+    <div class="link-example">使用示例岗位：<span id="linkExample">https://jobs.bytedance.com/experienced/position/7494870018459846919/detail</span></div>
+  </div>
+  <div id="linkResult"></div>
+</section>
+
+</main>
+
+<footer class="page-footer">
+  <p>OfferBoast 岗位雷达 · 数据直接来自各企业 ATS 系统 · 仅供求职参考</p>
+  <p>覆盖：腾讯 · 字节跳动 · 小红书 · 阿里巴巴 · DeepSeek · 智谱AI · 月之暗面 · MiniMax · 快手</p>
+</footer>
+
+<script>
+const COMPANIES = {
+  tencent:     {name:"腾讯",     color:"#00A4FF"},
+  bytedance:   {name:"字节跳动",  color:"#2B2B2B"},
+  xiaohongshu: {name:"小红书",    color:"#FF2442"},
+  alibaba:     {name:"阿里巴巴",  color:"#FF6A00"},
+  highflyer:   {name:"DeepSeek", color:"#6C5CE7"},
+  zhipu:       {name:"智谱AI",   color:"#00B894"},
+  moonshot:    {name:"月之暗面",  color:"#E84393"},
+  minimax:     {name:"MiniMax",  color:"#0984E3"},
+  kuaishou:    {name:"快手",     color:"#E17055"},
+};
+
+const state = {
+  company: "",
+  keyword: "",
+  city: "",
+  recruitType: "",
+  jobFunction: "",
+  days: 7,
+  jobs: [],
+  allCities: [],
+  loading: false,
+  page: 1,
+  pageSize: 15,
+  selectedJob: null,
+};
+
+const FUNC_RULES = [
+  {key:"算法",  patterns:[/算法/, /机器学习/, /深度学习/, /NLP/, /自然语言/, /CV/, /计算机视觉/, /AI/, /人工智能/, /大模型/, /LLM/, /推荐系统/, /搜索算法/]},
+  {key:"产品",  patterns:[/产品经理/, /产品总监/, /产品策划/, /产品运营.*产品/, /^产品/, /PM/, /Product Manager/]},
+  {key:"运营",  patterns:[/运营/, /新媒体/, /内容运营/, /用户运营/, /社群/, /增长/]},
+  {key:"开发",  patterns:[/开发/, /工程师/, /前端/, /后端/, /全栈/, /Java/, /Python/, /Go\b/, /C\+\+/, /iOS/, /Android/, /架构师/, /RD/, /研发/, /软件/]},
+  {key:"设计",  patterns:[/设计/, /UI/, /UX/, /视觉/, /交互/, /动效/, /创意/]},
+  {key:"数据",  patterns:[/数据分析/, /数据工程/, /数据挖掘/, /BI/, /数据科学/, /数据仓库/, /^数据/]},
+  {key:"测试",  patterns:[/测试/, /QA/, /质量保障/, /Quality/]},
+  {key:"市场",  patterns:[/市场/, /品牌/, /公关/, /Marketing/, /投放/, /广告/]},
+  {key:"销售",  patterns:[/销售/, /商务/, /BD/, /客户经理/, /Sales/, /渠道/]},
+  {key:"人力",  patterns:[/人力/, /HR/, /招聘/, /培训/, /组织发展/, /政委/]},
+  {key:"运维",  patterns:[/运维/, /SRE/, /DevOps/, /基础设施/, /平台工程/]},
+  {key:"安全",  patterns:[/安全/, /Security/, /风控/, /渗透/]},
+  {key:"项目",  patterns:[/项目管理/, /PMO/, /Project Manager/, /项目协调/]},
+  {key:"财务",  patterns:[/财务/, /会计/, /Finance/, /税务/]},
+];
+
+function classifyFunction(title, dept) {
+  const text = ((title || "") + " " + (dept || "")).trim();
+  if (!text) return "其他";
+  for (const rule of FUNC_RULES) {
+    for (const p of rule.patterns) {
+      if (p.test(text)) return rule.key;
+    }
+  }
+  return "其他";
+}
+
+function escapeHtml(s) {
+  if (!s) return "";
+  return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+}
+
+// ===== Tabs =====
+document.querySelectorAll('.nav-tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(btn.dataset.tab + 'Tab').classList.add('active');
+  });
+});
+
+// ===== Company Select =====
+function initCompanySelect() {
+  const sel = document.getElementById('companySelect');
+  for (const [id, info] of Object.entries(COMPANIES)) {
+    const opt = document.createElement('option');
+    opt.value = id;
+    opt.textContent = info.name;
+    sel.appendChild(opt);
+  }
+}
+
+// ===== Cities =====
+function extractCities(jobs) {
+  const citySet = new Set();
+  for (const j of jobs) {
+    const loc = j.location || "";
+    if (!loc) continue;
+    for (let c of loc.split(/[,，]/)) {
+      c = c.trim();
+      if (c && c !== "未知" && c.length <= 10) citySet.add(c);
+    }
+  }
+  return [...citySet].sort((a, b) => a.localeCompare(b, "zh-CN"));
+}
+
+function refreshCitySelect() {
+  const sel = document.getElementById('citySelect');
+  const current = state.city;
+  sel.innerHTML = '<option value="">全部城市</option>';
+  for (const c of state.allCities) {
+    const opt = document.createElement('option');
+    opt.value = c; opt.textContent = c;
+    sel.appendChild(opt);
+  }
+  if (current && state.allCities.includes(current)) sel.value = current;
+  else state.city = "";
+}
+
+// ===== Fetch =====
+let debounceTimer;
+function debounce(fn, delay) {
+  return function(...args) {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => fn.apply(this, args), delay);
+  };
+}
+
+async function fetchData() {
+  if (state.loading) return;
+  state.loading = true;
+  state.page = 1; state.selectedJob = null; renderDetail();
+  const area = document.getElementById('jobsTableArea');
+  const compName = state.company ? COMPANIES[state.company].name : '全部公司';
+  area.innerHTML = `<div class="loading"><div class="spinner"></div><p>正在获取 ${compName} 岗位数据...</p></div>`;
+
+  const params = new URLSearchParams({
+    companies: state.company || "all",
+    keyword: state.keyword,
+    days: state.days,
+  });
+  try {
+    const res = await fetch(`/api/jobs?${params}`);
+    const data = await res.json();
+    state.jobs = data.jobs || [];
+    state.allCities = extractCities(state.jobs);
+    refreshCitySelect();
+    renderStats(data);
+    renderTable(getFilteredJobs());
+    document.getElementById('updateTime').textContent = `更新于 ${new Date().toLocaleTimeString('zh-CN')}`;
+  } catch (e) {
+    area.innerHTML = `<div class="empty"><div class="icon">⚠️</div><div class="title">获取数据失败</div><p>${e.message}</p></div>`;
+  }
+  state.loading = false;
+}
+
+function renderStats(data) {
+  const jobs = state.jobs || [];
+  const today = new Date(); today.setHours(0,0,0,0);
+  document.getElementById('statToday').textContent = jobs.filter(j => j._days_ago === 0).length;
+  document.getElementById('stat3Day').textContent = jobs.filter(j => (j._days_ago || 9999) < 3).length;
+  document.getElementById('stat7Day').textContent = jobs.filter(j => (j._days_ago || 9999) < 7).length;
+  document.getElementById('stat30Day').textContent = jobs.filter(j => (j._days_ago || 9999) < 30).length;
+}
+
+// ===== Filtering =====
+function getFilteredJobs() {
+  let filtered = [...state.jobs];
+  if (state.city) {
+    filtered = filtered.filter(j => (j.location || "").split(/[,，]/).some(c => c.trim() === state.city));
+  }
+  if (state.recruitType) {
+    filtered = filtered.filter(j => (j._recruit_type || "未知") === state.recruitType);
+  }
+  if (state.jobFunction) {
+    filtered = filtered.filter(j => classifyFunction(j.title, j.dept) === state.jobFunction);
+  }
+  filtered.sort((a, b) => (a._days_ago || 9999) - (b._days_ago || 9999));
+  return filtered;
+}
+
+// ===== Table =====
+function renderTable(jobs) {
+  const area = document.getElementById('jobsTableArea');
+  if (!jobs || jobs.length === 0) {
+    area.innerHTML = `<div class="empty"><div class="icon">📋</div><div class="title">没有找到匹配的岗位</div><p>试试调整筛选条件或扩大时间范围</p></div>`;
+    return;
+  }
+  const total = jobs.length;
+  const totalPages = Math.max(1, Math.ceil(total / state.pageSize));
+  if (state.page > totalPages) state.page = 1;
+  const start = (state.page - 1) * state.pageSize;
+  const pageJobs = jobs.slice(start, start + state.pageSize);
+
+  const rows = pageJobs.map(j => {
+    const days = j._days_ago;
+    let badgeClass = "days-badge";
+    if (days === undefined || days > 30) badgeClass += " old";
+    else if (days >= 7) badgeClass += " warn";
+    const dateStr = j.date ? String(j.date).slice(0, 10) : "未知";
+    const rt = j._recruit_type || "";
+    const rtHtml = rt && rt !== "未知" ? `<span class="rt-badge${rt === '校招' ? ' campus' : ''}">${rt}</span>` : "";
+    const compColor = j._company_color || "#999";
+    const desc = (j.description || j.jd || "").substring(0, 80);
+    return `
+      <div class="job-row ${state.selectedJob === j ? 'active' : ''}" data-id="${escapeHtml(j.id || j.post_id || '')}">
+        <div class="job-info">
+          <div class="title-row">
+            <span class="title">${escapeHtml(j.title || "未知岗位")}</span>
+            ${rtHtml}
+          </div>
+          <div class="meta">
+            <span class="company"><span class="dot" style="background:${compColor}"></span>${escapeHtml(j._company_name || "")}</span>
+            ${j.dept ? `<span>${escapeHtml(j.dept)}</span>` : ""}
+          </div>
+          ${desc ? `<div class="desc">${escapeHtml(desc)}...</div>` : ""}
+        </div>
+        <div class="cell">${escapeHtml(j.location || "-")}</div>
+        <div class="cell">正式</div>
+        <div class="cell date">
+          <span>${dateStr}</span>
+          <span class="${badgeClass}">${days === 0 ? '今天' : (days === undefined ? '未知' : days + '天前')}</span>
+        </div>
+        <div class="cell-arrow">›</div>
+      </div>`;
+  }).join("");
+
+  area.innerHTML = `
+    <div class="table-header">
+      <div>职位信息</div><div>地点</div><div>招聘类型</div><div>发布时间</div><div></div>
+    </div>
+    ${rows}
+    <div class="pagination">
+      <span>共 ${total} 个岗位，第 ${state.page}/${totalPages} 页</span>
+      <button id="prevPage" ${state.page <= 1 ? 'disabled' : ''}>上一页</button>
+      <button id="nextPage" ${state.page >= totalPages ? 'disabled' : ''}>下一页</button>
+    </div>`;
+
+  area.querySelectorAll('.job-row').forEach((row, idx) => {
+    row.addEventListener('click', () => {
+      state.selectedJob = pageJobs[idx];
+      renderTable(jobs);
+      renderDetail();
+    });
+  });
+  document.getElementById('prevPage')?.addEventListener('click', () => { if (state.page > 1) { state.page--; renderTable(jobs); } });
+  document.getElementById('nextPage')?.addEventListener('click', () => { if (state.page < totalPages) { state.page++; renderTable(jobs); } });
+}
+
+// ===== Detail Panel =====
+function renderDetail() {
+  const panel = document.getElementById('detailPanel');
+  const j = state.selectedJob;
+  if (!j) {
+    panel.innerHTML = `
+      <div class="detail-empty">
+        <div class="icon">📄</div>
+        <div class="title">选择一个岗位查看 JD</div>
+        <div class="sub">岗位职责、任职要求和真实发布时间会在这里展示</div>
+      </div>`;
+    return;
+  }
+  const days = j._days_ago;
+  const dateStr = j.date || "未知";
+  const compColor = j._company_color || "#999";
+  let descHtml = "";
+  const jd = j.description || j.jd || j.detail || "";
+  if (jd) {
+    const lines = String(jd).split(/\n+/).filter(l => l.trim());
+    descHtml = lines.map(l => `<p>${escapeHtml(l.trim())}</p>`).join("");
+  } else {
+    descHtml = `<p class="placeholder">该企业未提供详细 JD，建议点击「前往官网投递」查看完整信息。</p>`;
+  }
+  panel.innerHTML = `
+    <div class="detail-header">
+      <div class="top">
+        <div class="title">${escapeHtml(j.title || "未知岗位")}</div>
+        <button class="close" id="closeDetail">×</button>
+      </div>
+      <div class="meta">
+        <span><span class="dot" style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${compColor};margin-right:4px"></span>${escapeHtml(j._company_name || "")}</span>
+        ${j.dept ? `<span>${escapeHtml(j.dept)}</span>` : ""}
+        ${j.location ? `<span>📍 ${escapeHtml(j.location)}</span>` : ""}
+        <span>📅 ${dateStr} 发布</span>
+        <span>⏱ ${days === 0 ? '今天' : (days === undefined ? '未知' : days + '天前')}</span>
+      </div>
+    </div>
+    <div class="detail-body">
+      <h4>岗位描述</h4>
+      ${descHtml}
+    </div>
+    <div class="detail-footer">
+      <a class="btn-primary" href="${escapeHtml(j.url || '#')}" target="_blank" rel="noopener">前往官网投递 ↗</a>
+      <div class="btn-hint">将在新标签页打开官方招聘页面</div>
+    </div>`;
+  document.getElementById('closeDetail').addEventListener('click', (e) => {
+    e.stopPropagation();
+    state.selectedJob = null;
+    renderTable(getFilteredJobs());
+    renderDetail();
+  });
+}
+
+// ===== Event Listeners =====
+document.getElementById('companySelect').addEventListener('change', e => {
+  state.company = e.target.value;
+  fetchData();
+});
+
+document.getElementById('keywordInput').addEventListener('input', debounce(e => {
+  state.keyword = e.target.value;
+  fetchData();
+}, 500));
+
+document.getElementById('daysSelect').addEventListener('change', e => {
+  state.days = parseInt(e.target.value);
+  fetchData();
+});
+
+document.getElementById('citySelect').addEventListener('change', e => {
+  state.city = e.target.value;
+  state.page = 1;
+  renderTable(getFilteredJobs());
+});
+
+document.getElementById('recruitTypeSelect').addEventListener('change', e => {
+  state.recruitType = e.target.value;
+  state.page = 1;
+  renderTable(getFilteredJobs());
+});
+
+document.getElementById('functionSelect').addEventListener('change', e => {
+  state.jobFunction = e.target.value;
+  state.page = 1;
+  renderTable(getFilteredJobs());
+});
+
+document.getElementById('clearFilters').addEventListener('click', () => {
+  state.keyword = ""; state.city = ""; state.recruitType = ""; state.jobFunction = ""; state.days = 7; state.company = "";
+  document.getElementById('keywordInput').value = "";
+  document.getElementById('citySelect').value = "";
+  document.getElementById('recruitTypeSelect').value = "";
+  document.getElementById('functionSelect').value = "";
+  document.getElementById('daysSelect').value = "7";
+  document.getElementById('companySelect').value = "";
+  fetchData();
+});
+
+// ===== Link Lookup =====
+document.getElementById('linkExample').addEventListener('click', () => {
+  document.getElementById('linkInput').value = document.getElementById('linkExample').textContent;
+});
+
+async function lookupLink() {
+  const url = document.getElementById('linkInput').value.trim();
+  const resultEl = document.getElementById('linkResult');
+  const btn = document.getElementById('linkBtn');
+  if (!url) { resultEl.innerHTML = ''; return; }
+  btn.disabled = true; btn.textContent = '解析中...';
+  resultEl.innerHTML = `<div class="loading"><div class="spinner"></div><p>正在解析岗位时间...</p></div>`;
+  try {
+    const res = await fetch('/api/lookup?url=' + encodeURIComponent(url));
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    const days = data.days_ago;
+    let adviceTitle = "建议积极投递", adviceDesc = "岗位发布时间较近，仍在活跃招聘中，建议尽快投递。", adviceColor = "var(--success)";
+    if (days === undefined || days > 45) {
+      adviceTitle = "建议谨慎投入时间";
+      adviceDesc = "岗位发布时间超过 45 天，继续开放的概率和反馈效率通常较低，不建议优先投入。";
+      adviceColor = "var(--danger)";
+    } else if (days >= 14) {
+      adviceTitle = "建议关注后决策";
+      adviceDesc = "岗位已发布两周以上，建议先投递但同步寻找更新岗位，避免单押。";
+      adviceColor = "var(--warning)";
+    }
+    const dateDisplay = data.date ? String(data.date).slice(0, 16).replace('T', ' ') : "未知";
+    resultEl.innerHTML = `
+      <div class="link-result">
+        <div class="result-header">
+          <div class="logo">${(data.company_name || '?').slice(0, 1)}</div>
+          <div class="info">
+            <div class="company">${escapeHtml(data.company_name || '未知公司')}</div>
+            <div class="title">${escapeHtml(data.title || '未知岗位')}</div>
+          </div>
+        </div>
+        <div class="result-grid">
+          <div class="item">
+            <div class="label">真实发布时间</div>
+            <div class="value">${dateDisplay}</div>
+          </div>
+          <div class="item">
+            <div class="label">距今天数</div>
+            <div class="value" style="color:${days === 0 ? 'var(--success)' : (days > 45 ? 'var(--danger)' : 'var(--text)')}">${days === 0 ? '今天' : (days === undefined ? '未知' : days + '天前')}</div>
+          </div>
+        </div>
+        <div class="result-advice">
+          <div class="title" style="color:${adviceColor}">💡 ${adviceTitle}</div>
+          <div class="desc">${adviceDesc}</div>
+        </div>
+        <div class="result-footer">
+          <a class="btn-primary" href="${escapeHtml(url)}" target="_blank" rel="noopener">查看官方岗位 ↗</a>
+        </div>
+      </div>`;
+  } catch (e) {
+    resultEl.innerHTML = `<div class="empty"><div class="icon">⚠️</div><div class="title">解析失败</div><p>${e.message}</p></div>`;
+  }
+  btn.disabled = false; btn.textContent = '解析链接';
+}
+
+document.getElementById('linkBtn').addEventListener('click', lookupLink);
+document.getElementById('linkInput').addEventListener('keydown', e => { if (e.key === 'Enter') lookupLink(); });
+
+// ===== Init =====
+initCompanySelect();
+fetchData();
+</script>
+</body>
+</html>
