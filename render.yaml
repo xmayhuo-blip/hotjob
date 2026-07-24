@@ -1,8 +1,8 @@
-# Render Blueprint — OfferBoast 岗位雷达
+# Render Blueprint — hotjob
 # https://render.com/docs/blueprint-spec
 services:
   - type: web
-    name: offerboast-job-radar
+    name: hotjob
     runtime: python
     plan: free
     buildCommand: pip install -r requirements.txt

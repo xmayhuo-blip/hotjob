@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-OfferBoast 岗位雷达 — Web Server
+hotjob — Web Server
 直接读取招聘网站 ATS，实时返回岗位发布时间
 """
 
@@ -729,7 +729,7 @@ def prewarm_cache():
 
 def main():
     server = http.server.ThreadingHTTPServer(("0.0.0.0", PORT), Handler)
-    print(f"OfferBoast 岗位雷达 running on http://localhost:{PORT}")
+    print(f"hotjob running on http://localhost:{PORT}")
     print(f"  Python: {PYTHON_BIN}")
     print(f"  Engine: {HR_SCRIPT}")
     print(f"  Companies: {', '.join(COMPANIES.keys())}")
