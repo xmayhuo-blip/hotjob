@@ -9,6 +9,6 @@ services:
     startCommand: cd web && python app.py
     envVars:
       - key: PYTHON_VERSION
-        value: 3.13.0
+        value: "3.12.11"
     healthCheckPath: /api/health
     autoDeploy: true
