@@ -588,6 +588,7 @@ const state = {
   jobs: [],
   allCities: [],
   loading: false,
+  retryCount: 0,
   page: 1,
   pageSize: 15,
   selectedJob: null,
@@ -706,11 +707,20 @@ async function fetchData() {
     renderTable(getFilteredJobs());
     document.getElementById('updateTime').textContent = `更新于 ${new Date().toLocaleTimeString('zh-CN')}`;
 
-    // Auto-refresh if some companies are still loading
-    if (data.loading && data.loading.length > 0) {
+    // Show failed companies (non-blocking, no auto-refresh)
+    const failedNames = Object.keys(data.errors || {}).map(c => (COMPANIES[c] || {}).name || c).filter(Boolean);
+    if (failedNames.length > 0) {
+      state.retryCount = 0;  // reset retry count since these are permanent failures
+      area.insertAdjacentHTML('afterbegin',
+        `<div class="loading-banner" style="border-color:#ffe0e0;background:#fff5f5;color:#c0392b;">⚠️ ${failedNames.join('、')} 数据暂时获取失败，不影响其他公司岗位浏览</div>`);
+    }
+
+    // Auto-refresh only if some companies are still loading (cold cache)
+    if (data.loading && data.loading.length > 0 && state.retryCount < 3) {
+      state.retryCount++;
       const loadingNames = data.loading.map(c => (COMPANIES[c] || {}).name || c).join('、');
       area.insertAdjacentHTML('afterbegin',
-        `<div class="loading-banner">⏳ 正在获取 ${loadingNames} 的岗位数据，几秒后自动刷新...</div>`);
+        `<div class="loading-banner">⏳ 正在获取 ${loadingNames} 的岗位数据，几秒后自动刷新... (${state.retryCount}/3)</div>`);
       state.loading = false;  // allow re-fetch
       setTimeout(() => { if (!state.loading) fetchData(); }, 8000);
       return;
@@ -870,17 +880,17 @@ function renderDetail() {
 // ===== Event Listeners =====
 document.getElementById('companySelect').addEventListener('change', e => {
   state.company = e.target.value;
-  fetchData();
+  state.retryCount = 0; fetchData();
 });
 
 document.getElementById('keywordInput').addEventListener('input', debounce(e => {
   state.keyword = e.target.value;
-  fetchData();
+  state.retryCount = 0; fetchData();
 }, 500));
 
 document.getElementById('daysSelect').addEventListener('change', e => {
   state.days = parseInt(e.target.value);
-  fetchData();
+  state.retryCount = 0; fetchData();
 });
 
 document.getElementById('citySelect').addEventListener('change', e => {
@@ -909,7 +919,7 @@ document.getElementById('clearFilters').addEventListener('click', () => {
   document.getElementById('functionSelect').value = "";
   document.getElementById('daysSelect').value = "7";
   document.getElementById('companySelect').value = "";
-  fetchData();
+  state.retryCount = 0; fetchData();
 });
 
 // ===== Link Lookup =====

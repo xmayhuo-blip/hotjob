@@ -67,6 +67,7 @@ _inflight_lock = threading.Lock()
 _fetch_semaphore = threading.Semaphore(3)  # max 3 concurrent subprocess calls
 CACHE_TTL = 600         # 10 min — reduces API call frequency by 50% vs 5 min
 STALE_TTL = 3600        # 1 hour — serve stale data on fetch failure
+FAIL_CACHE_TTL = 300    # 5 min — cache failed fetches so they don't retry infinitely
 
 def fetch_company(company_id):
     """Fetch company jobs with in-flight dedup + stale cache fallback.
@@ -125,6 +126,8 @@ def fetch_company(company_id):
                     if time.time() - entry["time"] < STALE_TTL:
                         sys.stderr.write(f"[{company_id}] serving stale cache (age {int(time.time()-entry['time'])}s)\n")
                         return company_id, entry["data"], True
+                # Cache failure for FAIL_CACHE_TTL to prevent infinite retry
+                _cache[company_id] = {"time": time.time(), "data": [], "failed": True}
             return company_id, [], cached
     except Exception as e:
         sys.stderr.write(f"[{company_id}] error: {e}\n")
@@ -135,6 +138,8 @@ def fetch_company(company_id):
                 if time.time() - entry["time"] < STALE_TTL:
                     sys.stderr.write(f"[{company_id}] serving stale cache after error (age {int(time.time()-entry['time'])}s)\n")
                     return company_id, entry["data"], True
+            # Cache failure for FAIL_CACHE_TTL to prevent infinite retry
+            _cache[company_id] = {"time": time.time(), "data": [], "failed": True}
         return company_id, [], cached
     finally:
         # Always release the in-flight lock so future requests can proceed
@@ -611,7 +616,14 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 if cid in _cache:
                     entry = _cache[cid]
                     age = time.time() - entry["time"]
-                    if age < CACHE_TTL:
+                    # Check for failed cache entry
+                    if entry.get("failed"):
+                        if age < FAIL_CACHE_TTL:
+                            results[cid] = entry["data"]
+                            errors[cid] = "fetch failed"
+                            continue
+                        # Failure cache expired — retry
+                    elif age < CACHE_TTL:
                         results[cid] = entry["data"]
                         continue
                     elif age < STALE_TTL:
