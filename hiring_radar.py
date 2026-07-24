@@ -63,6 +63,13 @@ LOCAL_PARSERS = {
     "kuaishou":  {"command": "python3", "args": ["parsers/kuaishou.py", "{keyword}"]},
 }
 
+# Fix: use current Python interpreter (with pycryptodome) instead of system python3
+_PY = sys.executable
+ALLOWED_INTERP.add(_PY)
+for _spec in LOCAL_PARSERS.values():
+    if _spec.get("command") == "python3":
+        _spec["command"] = _PY
+
 FIELDS = ["title", "company", "dept", "team", "location", "remote", "type",
           "date", "date_updated", "req_id", "comp", "jd", "url", "apply_url", "id"]
 
@@ -680,11 +687,11 @@ def _load_company_seeds():
         if not key or key in LOCAL_PARSERS:
             continue
         if typ == "feishu" and a1:
-            LOCAL_PARSERS[key] = {"command": "python3", "args": ["parsers/feishu.py", a1, company, "{keyword}"]}
+            LOCAL_PARSERS[key] = {"command": _PY, "args": ["parsers/feishu.py", a1, company, "{keyword}"]}
         elif typ == "moka" and a1 and a2:
-            LOCAL_PARSERS[key] = {"command": "python3", "args": ["parsers/moka.py", a1, a2, company, "{keyword}"]}
+            LOCAL_PARSERS[key] = {"command": _PY, "args": ["parsers/moka.py", a1, a2, company, "{keyword}"]}
         elif typ == "beisen" and a1:
-            LOCAL_PARSERS[key] = {"command": "python3", "args": ["parsers/beisen.py", a1, company, "{keyword}"]}
+            LOCAL_PARSERS[key] = {"command": _PY, "args": ["parsers/beisen.py", a1, company, "{keyword}"]}
 
 def _safe_slug(kind, slug):
     slug = (slug or "").strip()

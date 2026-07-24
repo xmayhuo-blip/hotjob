@@ -24,6 +24,27 @@ PROJECT_DIR = os.path.dirname(BASE_DIR)
 HR_SCRIPT = os.path.join(PROJECT_DIR, "hiring_radar.py")
 PORT = int(os.environ.get("PORT", "8787"))
 
+# ===== Simple per-IP rate limiter =====
+# Limits: 30 req/min per IP (enough for normal browsing, blocks abuse)
+_rate_map = {}          # ip -> [timestamp, timestamp, ...]
+_rate_lock = threading.Lock()
+RATE_WINDOW = 60        # seconds
+RATE_MAX = 30           # max requests per window per IP
+
+def _rate_limit_ok(client_ip):
+    """Returns True if request is within rate limit."""
+    now = time.time()
+    with _rate_lock:
+        hits = _rate_map.get(client_ip, [])
+        # Prune old entries
+        hits = [t for t in hits if now - t < RATE_WINDOW]
+        if len(hits) >= RATE_MAX:
+            _rate_map[client_ip] = hits
+            return False
+        hits.append(now)
+        _rate_map[client_ip] = hits
+        return True
+
 COMPANIES = {
     "tencent":    {"name": "腾讯",     "color": "#00A4FF", "url": "https://careers.tencent.com/", "recruit_type": "社招"},
     "bytedance":  {"name": "字节跳动",  "color": "#2B2B2B", "url": "https://jobs.bytedance.com/", "recruit_type": "社招"},
@@ -41,20 +62,52 @@ COMPANIES = {
 
 _cache = {}
 _cache_lock = threading.Lock()
-CACHE_TTL = 300
+_inflight = {}          # company_id -> threading.Event, for request dedup
+_inflight_lock = threading.Lock()
+_fetch_semaphore = threading.Semaphore(3)  # max 3 concurrent subprocess calls
+CACHE_TTL = 600         # 10 min — reduces API call frequency by 50% vs 5 min
+STALE_TTL = 3600        # 1 hour — serve stale data on fetch failure
 
 def fetch_company(company_id):
+    """Fetch company jobs with in-flight dedup + stale cache fallback.
+
+    If a fetch for this company is already in progress, wait for it
+    instead of launching a duplicate subprocess (prevents API ban).
+    On fetch failure, return stale cache if available.
+    """
     cached = False
+
+    # 1. Check fresh cache
     with _cache_lock:
         if company_id in _cache:
             entry = _cache[company_id]
-            if time.time() - entry["time"] < CACHE_TTL:
+            age = time.time() - entry["time"]
+            if age < CACHE_TTL:
                 return company_id, entry["data"], True
+
+    # 2. In-flight dedup: if another thread is already fetching this company, wait for it
+    with _inflight_lock:
+        event = _inflight.get(company_id)
+        if event:
+            event.wait(timeout=45)  # wait for the other fetch to finish
+            # After waiting, check cache again
+            with _cache_lock:
+                if company_id in _cache:
+                    return company_id, _cache[company_id]["data"], True
+            # Other fetch failed and no cache — return empty
+            return company_id, [], False
+
+        # Register ourselves as the in-flight fetcher
+        event = threading.Event()
+        _inflight[company_id] = event
+
+    # 3. We are the designated fetcher — do the actual work
+    _fetch_semaphore.acquire()
     try:
         env = os.environ.copy()
         result = subprocess.run(
             [PYTHON_BIN, HR_SCRIPT, "--local", company_id, "--json", "--limit", "500"],
-            capture_output=True, text=True, timeout=90,
+            capture_output=True, text=True, timeout=45,
             cwd=PROJECT_DIR, env=env
         )
         if result.returncode == 0:
@@ -65,10 +118,30 @@ def fetch_company(company_id):
             return company_id, jobs, cached
         else:
             sys.stderr.write(f"[{company_id}] stderr: {result.stderr[:200]}\n")
+            # Fallback: serve stale cache if available
+            with _cache_lock:
+                if company_id in _cache:
+                    entry = _cache[company_id]
+                    if time.time() - entry["time"] < STALE_TTL:
+                        sys.stderr.write(f"[{company_id}] serving stale cache (age {int(time.time()-entry['time'])}s)\n")
+                        return company_id, entry["data"], True
             return company_id, [], cached
     except Exception as e:
         sys.stderr.write(f"[{company_id}] error: {e}\n")
+        # Fallback: serve stale cache if available
+        with _cache_lock:
+            if company_id in _cache:
+                entry = _cache[company_id]
+                if time.time() - entry["time"] < STALE_TTL:
+                    sys.stderr.write(f"[{company_id}] serving stale cache after error (age {int(time.time()-entry['time'])}s)\n")
+                    return company_id, entry["data"], True
         return company_id, [], cached
+    finally:
+        # Always release the in-flight lock so future requests can proceed
+        _fetch_semaphore.release()
+        with _inflight_lock:
+            _inflight.pop(company_id, None)
+        event.set()
 
 def parse_date(date_str):
     if not date_str or date_str == "未知":
@@ -436,8 +509,15 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self.wfile.write(data)
 
     def do_GET(self):
+        # Rate limit check (skip for static files)
         parsed = urlparse(self.path)
         path = parsed.path
+        if path.startswith("/api/") and path != "/api/health":
+            client_ip = self.client_address[0]
+            if not _rate_limit_ok(client_ip):
+                self._send(429, {"error": "请求过于频繁，请稍后再试"})
+                return
+
         qs = parse_qs(parsed.query)
 
         if path == "/" or path == "/index.html":
@@ -522,17 +602,35 @@ class Handler(http.server.BaseHTTPRequestHandler):
         t0 = time.time()
         results = {}
         errors = {}
+        loading = []
 
-        with ThreadPoolExecutor(max_workers=6) as pool:
-            futures = {pool.submit(fetch_company, cid): cid for cid in company_ids}
-            for fut in as_completed(futures):
-                cid = futures[fut]
-                try:
-                    cid, jobs, cached = fut.result()
-                    results[cid] = jobs
-                except Exception as e:
-                    errors[cid] = str(e)
+        # Stale-while-revalidate: return cached data immediately,
+        # trigger background fetch for uncached companies
+        for cid in company_ids:
+            with _cache_lock:
+                if cid in _cache:
+                    entry = _cache[cid]
+                    age = time.time() - entry["time"]
+                    if age < CACHE_TTL:
+                        results[cid] = entry["data"]
+                        continue
+                    elif age < STALE_TTL:
+                        # Serve stale, revalidate in background
+                        results[cid] = entry["data"]
+                        if cid not in _inflight:
+                            threading.Thread(target=fetch_company, args=(cid,), daemon=True).start()
+                        continue
+            # Not cached — check if fetch is in-flight
+            with _inflight_lock:
+                if cid in _inflight:
+                    # Fetch in progress — return empty for now
                     results[cid] = []
+                    loading.append(cid)
+                else:
+                    # Cold cache — trigger background fetch, return empty
+                    results[cid] = []
+                    loading.append(cid)
+                    threading.Thread(target=fetch_company, args=(cid,), daemon=True).start()
 
         all_jobs = []
         company_stats = {}
@@ -603,6 +701,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 "by_company": company_stats,
             },
             "errors": errors,
+            "loading": loading,
             "fetch_time": round(time.time() - t0, 1),
             "cached": all(f"{cid}" in _cache for cid in company_ids),
         })
@@ -610,12 +709,37 @@ class Handler(http.server.BaseHTTPRequestHandler):
     def log_message(self, fmt, *args):
         sys.stderr.write(f"[{self.log_date_time_string()}] {fmt % args}\n")
 
+def prewarm_cache():
+    """Background thread: fetch all companies in parallel on startup.
+
+    Prevents cold-start stampede where the first N users all trigger
+    simultaneous API calls to every company. In-flight dedup ensures
+    user requests during prewarm wait for results instead of duplicating calls.
+    """
+    with ThreadPoolExecutor(max_workers=3) as pool:
+        futures = {pool.submit(fetch_company, cid): cid for cid in COMPANIES}
+        for fut in as_completed(futures):
+            cid = futures[fut]
+            try:
+                fut.result()
+                sys.stderr.write(f"[prewarm] {cid} done\n")
+            except Exception as e:
+                sys.stderr.write(f"[prewarm] {cid} failed: {e}\n")
+
+
 def main():
     server = http.server.ThreadingHTTPServer(("0.0.0.0", PORT), Handler)
     print(f"OfferBoast 岗位雷达 running on http://localhost:{PORT}")
     print(f"  Python: {PYTHON_BIN}")
     print(f"  Engine: {HR_SCRIPT}")
     print(f"  Companies: {', '.join(COMPANIES.keys())}")
+    print(f"  Cache TTL: {CACHE_TTL}s | Stale TTL: {STALE_TTL}s")
+
+    # Pre-warm cache in background (non-blocking)
+    t = threading.Thread(target=prewarm_cache, daemon=True)
+    t.start()
+    print("  Pre-warming cache in background...")
+
     try:
         server.serve_forever()
     except KeyboardInterrupt:

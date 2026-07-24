@@ -50,8 +50,8 @@ body {
   font-size: 20px; font-weight: 700; color: var(--primary);
   display: flex; align-items: center; gap: 8px;
 }
-.brand::before {
-  content: "◎"; font-size: 18px; opacity: 0.9;
+.brand-icon {
+  width: 26px; height: 26px; border-radius: 6px; flex-shrink: 0;
 }
 .nav-tabs {
   display: flex; gap: 8px;
@@ -294,6 +294,11 @@ body {
   animation: spin 0.8s linear infinite; margin: 0 auto 12px;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+.loading-banner {
+  padding: 8px 16px; margin-bottom: 12px; border-radius: 8px;
+  background: #fff8e1; color: #e65100; font-size: 13px; text-align: center;
+  border: 1px solid #ffe0b2;
+}
 .empty .icon { font-size: 40px; margin-bottom: 12px; }
 .empty .title { font-size: 14px; font-weight: 600; color: var(--text-2); margin-bottom: 4px; }
 
@@ -432,7 +437,7 @@ body {
 
 <header class="top-nav">
   <div class="nav-inner">
-    <div class="brand">OfferBoast</div>
+    <div class="brand"><img src="/favicon-32x32.png" alt="OfferBoast" class="brand-icon">OfferBoast</div>
     <nav class="nav-tabs">
       <button class="nav-tab active" data-tab="latest">最新岗位</button>
       <button class="nav-tab" data-tab="link">链接查时间</button>
@@ -590,7 +595,7 @@ const state = {
 
 const FUNC_RULES = [
   {key:"算法",  patterns:[/算法/, /机器学习/, /深度学习/, /NLP/, /自然语言/, /CV/, /计算机视觉/, /AI/, /人工智能/, /大模型/, /LLM/, /推荐系统/, /搜索算法/]},
-  {key:"产品",  patterns:[/产品经理/, /产品总监/, /产品策划/, /产品运营.*产品/, /^产品/, /PM/, /Product Manager/]},
+  {key:"产品",  patterns:[/产品经理/, /产品总监/, /产品策划/, /产品运营/, /^产品/, /PM/, /Product Manager/]},
   {key:"运营",  patterns:[/运营/, /新媒体/, /内容运营/, /用户运营/, /社群/, /增长/]},
   {key:"开发",  patterns:[/开发/, /工程师/, /前端/, /后端/, /全栈/, /Java/, /Python/, /Go\b/, /C\+\+/, /iOS/, /Android/, /架构师/, /RD/, /研发/, /软件/]},
   {key:"设计",  patterns:[/设计/, /UI/, /UX/, /视觉/, /交互/, /动效/, /创意/]},
@@ -700,6 +705,16 @@ async function fetchData() {
     renderStats(data);
     renderTable(getFilteredJobs());
     document.getElementById('updateTime').textContent = `更新于 ${new Date().toLocaleTimeString('zh-CN')}`;
+
+    // Auto-refresh if some companies are still loading
+    if (data.loading && data.loading.length > 0) {
+      const loadingNames = data.loading.map(c => (COMPANIES[c] || {}).name || c).join('、');
+      area.insertAdjacentHTML('afterbegin',
+        `<div class="loading-banner">⏳ 正在获取 ${loadingNames} 的岗位数据，几秒后自动刷新...</div>`);
+      state.loading = false;  // allow re-fetch
+      setTimeout(() => { if (!state.loading) fetchData(); }, 8000);
+      return;
+    }
   } catch (e) {
     area.innerHTML = `<div class="empty"><div class="icon">⚠️</div><div class="title">获取数据失败</div><p>${e.message}</p></div>`;
   }
@@ -767,7 +782,7 @@ function renderTable(jobs) {
           ${desc ? `<div class="desc">${escapeHtml(desc)}...</div>` : ""}
         </div>
         <div class="cell">${escapeHtml(j.location || "-")}</div>
-        <div class="cell">正式</div>
+        <div class="cell">${rt && rt !== "未知" ? escapeHtml(rt) : "-"}</div>
         <div class="cell date">
           <span>${dateStr}</span>
           <span class="${badgeClass}">${days === 0 ? '今天' : (days === undefined ? '未知' : days + '天前')}</span>
