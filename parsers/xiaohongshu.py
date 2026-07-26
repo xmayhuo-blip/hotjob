@@ -54,6 +54,8 @@ def fetch(keyword="", pages=9, size=100, recruit_type="social"):
                 "dept": j.get("jobType", ""),
                 "date": j.get("publishTime", ""),
                 "jd": jd,
+                "responsibility": duty,
+                "requirement": qual,
                 "url": f"https://job.xiaohongshu.com/{recruit_type}/position/{pid}" if pid else "",
                 "id": pid,
             })

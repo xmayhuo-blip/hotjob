@@ -5,7 +5,7 @@
 API: GET /recruit/e/api/v1/open/positions/simple
 签名: HMAC-SHA256(signTimestamp + canonicalQuery + SECRET, SECRET)
 """
-import sys, json, re, ssl, hmac, hashlib, urllib.request, urllib.parse
+import sys, json, re, ssl, hmac, hashlib, urllib.request, urllib.parse, os
 
 DOMAIN = "zhaopin.kuaishou.cn"
 BASE_URL = f"https://{DOMAIN}"
@@ -13,6 +13,9 @@ API_PREFIX = "/recruit/e"
 SIGN_SECRET = "652f962a-0575-4575-98d2-f04e2291bee2"
 
 CTX = ssl.create_default_context()
+if os.environ.get("HIRING_RADAR_INSECURE") == "1":
+    CTX.check_hostname = False
+    CTX.verify_mode = ssl.CERT_NONE
 UA = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
       "Accept": "application/json, text/plain, */*",
       "Referer": f"{BASE_URL}/"}

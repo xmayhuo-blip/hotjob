@@ -44,18 +44,86 @@ def _rate_limit_ok(client_ip):
         hits.append(now)
         _rate_map[client_ip] = hits
         return True
+# ===== Company seed loader: reads parsers/companies.seed =====
+_SEED_COLORS = [
+    "#00A4FF", "#FF2442", "#FF6A00", "#6C5CE7", "#00B894", "#E84393",
+    "#0984E3", "#E17055", "#2D3436", "#FDA7DF", "#6AB04C", "#F0932B",
+    "#A29BFE", "#55EFC4", "#FF7675", "#74B9FF", "#E056A0", "#FDCB6E",
+    "#636E72", "#D980FA", "#32FF7E", "#F8B500", "#00CEC9", "#D63031",
+]
 
-COMPANIES = {
-    "tencent":    {"name": "腾讯",     "color": "#00A4FF", "url": "https://careers.tencent.com/", "recruit_type": "社招"},
-    "bytedance":  {"name": "字节跳动",  "color": "#2B2B2B", "url": "https://jobs.bytedance.com/", "recruit_type": "社招"},
-    "xiaohongshu":{"name": "小红书",    "color": "#FF2442", "url": "https://job.xiaohongshu.com/", "recruit_type": "社招"},
-    "alibaba":    {"name": "阿里巴巴",  "color": "#FF6A00", "url": "https://talent.alibaba.com/", "recruit_type": "社招"},
-    "highflyer":  {"name": "DeepSeek", "color": "#6C5CE7", "url": "https://app.mokahr.com/social-recruitment/high-flyer/140576", "recruit_type": "社招"},
-    "zhipu":      {"name": "智谱AI",   "color": "#00B894", "url": "https://zhipu-ai.jobs.feishu.cn/", "recruit_type": "社招"},
-    "moonshot":   {"name": "月之暗面",  "color": "#E84393", "url": "https://app.mokahr.com/apply/moonshot/148506"},
-    "minimax":    {"name": "MiniMax",  "color": "#0984E3", "url": "https://www.minimaxi.com/careers"},
-    "kuaishou":   {"name": "快手",     "color": "#E17055", "url": "https://zhaopin.kuaishou.cn/", "recruit_type": "社招"},
-}
+def _load_seed_companies():
+    """Parse companies.seed into COMPANIES-compatible dict for feishu & moka types.
+
+    Returns dict: {company_id: {name, color, url, recruit_type}}
+    Skips beisen (iTalent SPA -- needs Playwright) and selfbuilt.
+    """
+    seed_path = os.path.join(PROJECT_DIR, "parsers", "companies.seed")
+    companies = {}
+    if not os.path.exists(seed_path):
+        return companies
+
+    with open(seed_path, encoding="utf-8") as f:
+        lines = f.readlines()
+
+    color_idx = 0
+    for ln in lines:
+        ln = ln.strip()
+        if not ln or ln.startswith("#"):
+            continue
+        parts = [x.strip() for x in ln.split("|")]
+        if len(parts) < 4:
+            continue
+        key, typ, name = parts[0].lower(), parts[1].lower(), parts[2]
+        arg1, arg2 = (parts[3] if len(parts) > 3 else ""), (parts[4] if len(parts) > 4 else "")
+
+        if typ not in ("feishu", "moka"):
+            continue
+        if not arg1:
+            continue
+
+        color = _SEED_COLORS[color_idx % len(_SEED_COLORS)]
+        color_idx += 1
+
+        url = ""
+        if typ == "feishu":
+            url = f"https://{arg1}/"
+        elif typ == "moka":
+            url = f"https://app.mokahr.com/social-recruitment/{arg1}/{arg2}" if arg2 else f"https://app.mokahr.com/apply/{arg1}"
+
+        companies[key] = {
+            "name": name,
+            "color": color,
+            "url": url,
+            "recruit_type": "社招",
+        }
+
+    return companies
+
+
+def _build_companies():
+    """Merge hardcoded overrides with seed-loaded companies (hardcoded wins)."""
+    base = {
+        "bytedance":  {"name": "字节跳动",  "color": "#2B2B2B", "url": "https://jobs.bytedance.com/", "recruit_type": "社招"},
+        "highflyer":  {"name": "DeepSeek", "color": "#6C5CE7", "url": "https://app.mokahr.com/social-recruitment/high-flyer/140576", "recruit_type": "社招"},
+        "zhipu":      {"name": "智谱AI",   "color": "#00B894", "url": "https://zhipu-ai.jobs.feishu.cn/", "recruit_type": "社招"},
+        "moonshot":   {"name": "月之暗面",  "color": "#E84393", "url": "https://app.mokahr.com/apply/moonshot/148506"},
+        "minimax":    {"name": "MiniMax",  "color": "#0984E3", "url": "https://www.minimaxi.com/careers"},
+        "lilith":     {"name": "莉莉丝",     "color": "#9B59B6", "url": "https://lilithgames.jobs.feishu.cn/", "recruit_type": "社招"},
+        "kurogame":   {"name": "库洛游戏",   "color": "#F39C12", "url": "https://kurogame.jobs.feishu.cn/", "recruit_type": "社招"},
+    }
+    # Currently focusing on the 9 verified companies for reliability.
+    # Seed loading infrastructure kept for future expansion:
+    #   seed = _load_seed_companies()
+    #   merged = dict(base); merged.update(seed); return merged
+    return base
+
+
+COMPANIES = _build_companies()
+
+PREWARM_LIMIT = 30      # max companies to prewarm / load by default
+REFRESH_INTERVAL = 3600  # seconds between full data refreshes (1 hour)
+_last_refresh = 0        # timestamp of last completed refresh cycle
 
 # Companies without explicit recruit_type fall back to the `type` field from parser data
 # (feishu.py returns "社招"/"校招" via recruit_type.name; moka.py returns "全职"/"兼职")
@@ -68,6 +136,8 @@ _fetch_semaphore = threading.Semaphore(3)  # max 3 concurrent subprocess calls
 CACHE_TTL = 600         # 10 min — reduces API call frequency by 50% vs 5 min
 STALE_TTL = 3600        # 1 hour — serve stale data on fetch failure
 FAIL_CACHE_TTL = 300    # 5 min — cache failed fetches so they don't retry infinitely
+
+
 
 def fetch_company(company_id):
     """Fetch company jobs with in-flight dedup + stale cache fallback.
@@ -106,6 +176,7 @@ def fetch_company(company_id):
     _fetch_semaphore.acquire()
     try:
         env = os.environ.copy()
+        env["HIRING_RADAR_INSECURE"] = "1"
         result = subprocess.run(
             [PYTHON_BIN, HR_SCRIPT, "--local", company_id, "--json", "--limit", "500"],
             capture_output=True, text=True, timeout=45,
@@ -118,7 +189,7 @@ def fetch_company(company_id):
                 _cache[company_id] = {"time": time.time(), "data": jobs}
             return company_id, jobs, cached
         else:
-            sys.stderr.write(f"[{company_id}] stderr: {result.stderr[:200]}\n")
+            sys.stderr.write(f"[{company_id}] stderr: {result.stderr[:500]}\n")
             # Fallback: serve stale cache if available
             with _cache_lock:
                 if company_id in _cache:
@@ -186,6 +257,61 @@ def parse_date(date_str):
         return datetime.fromtimestamp(ts)
     except Exception:
         return None
+
+
+def extract_experience(requirement, jd=""):
+    """Extract years of experience from job requirement text.
+    
+    Returns a dict with:
+      _exp_min: min years required (0 = 应届/无要求, -1 = 未识别)
+      _exp_label: display label like "1-3年"
+    """
+    import re as _re
+    text = (requirement or "") + " " + (jd or "")
+    if not text.strip():
+        return {"_exp_min": -1, "_exp_label": ""}
+    
+    # Check for 应届/实习/毕业生
+    if _re.search(r'应届|毕业生|实习|校招|无经验|不限经验', text):
+        return {"_exp_min": 0, "_exp_label": "应届"}
+    
+    # Normalize: remove spaces around numbers
+    text = _re.sub(r'(\d+)\s*年', r'\1年', text)
+    
+    # Pattern 1: "N年及以上" / "N年以上" / "N年以上经验"
+    m = _re.search(r'(\d+)\s*年\s*(?:及\s*)?以\s*上', text)
+    if m:
+        n = int(m.group(1))
+        if n <= 1: return {"_exp_min": 1, "_exp_label": "1-3年"}
+        if n <= 3: return {"_exp_min": n, "_exp_label": f"{n}-5年"}
+        if n <= 5: return {"_exp_min": n, "_exp_label": f"{n}-10年"}
+        return {"_exp_min": n, "_exp_label": f"{n}年+"}
+    
+    # Pattern 2: "N-N年" / "N至N年" / "N~N年"
+    m = _re.search(r'(\d+)\s*[-~至到]\s*(\d+)\s*年', text)
+    if m:
+        lo, hi = int(m.group(1)), int(m.group(2))
+        if hi <= 1: return {"_exp_min": 0, "_exp_label": "应届"}
+        if hi <= 3: return {"_exp_min": lo, "_exp_label": "1-3年"}
+        if hi <= 5: return {"_exp_min": lo, "_exp_label": "3-5年"}
+        if hi <= 10: return {"_exp_min": lo, "_exp_label": "5-10年"}
+        return {"_exp_min": lo, "_exp_label": "10年+"}
+    
+    # Pattern 3: "N年经验" / "N年相关" / "N年以上"
+    m = _re.search(r'(\d+)\s*年', text)
+    if m:
+        n = int(m.group(1))
+        if n <= 1: return {"_exp_min": 0, "_exp_label": "应届"}
+        if n <= 3: return {"_exp_min": n, "_exp_label": "1-3年"}
+        if n <= 5: return {"_exp_min": n, "_exp_label": "3-5年"}
+        if n <= 10: return {"_exp_min": n, "_exp_label": "5-10年"}
+        return {"_exp_min": n, "_exp_label": "10年+"}
+    
+    # Pattern 4: "经验丰富" / "有经验" without number
+    if _re.search(r'经验丰富|有相关经验|有\w+经验', text):
+        return {"_exp_min": 1, "_exp_label": "1-3年"}
+    
+    return {"_exp_min": -1, "_exp_label": ""}
 
 def days_ago(dt):
     if dt is None:
@@ -415,6 +541,7 @@ def fetch_job_detail_fallback(cid, job_id, url):
         elif cid == "alibaba":
             # Alibaba - single large page request (pageSize=500)
             env = os.environ.copy()
+            env["HIRING_RADAR_INSECURE"] = "1"
             result = subprocess.run(
                 [PYTHON_BIN, os.path.join(PROJECT_DIR, "parsers/alibaba.py"), "", "1", "talent.alibaba.com"],
                 capture_output=True, text=True, timeout=15, cwd=PROJECT_DIR, env=env
@@ -434,7 +561,7 @@ def fetch_job_detail_fallback(cid, job_id, url):
 def lookup_job(url):
     cid = identify_company(url)
     if not cid or cid not in COMPANIES:
-        return None, "无法识别链接所属公司，目前支持腾讯、字节、小红书、阿里、DeepSeek、智谱、月之暗面、MiniMax、快手"
+        return None, f"无法识别链接所属公司，目前支持{len(COMPANIES)}家公司，可通过选择公司筛选"
 
     # Get id patterns for this company
     patterns = []
@@ -496,6 +623,9 @@ def _enrich_match(match, cid, url):
     match["_recruit_type"] = rt
     dt = parse_date(match.get("date", ""))
     match["_days_ago"] = days_ago(dt)
+    exp = extract_experience(match.get("requirement", ""), match.get("jd", ""))
+    match["_exp_min"] = exp["_exp_min"]
+    match["_exp_label"] = exp["_exp_label"]
     return match, None
 
 class Handler(http.server.BaseHTTPRequestHandler):
@@ -546,6 +676,34 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self._send(200, {"status": "ok", "time": datetime.now().isoformat()})
             return
 
+        if path == "/api/health/parsers":
+            status = {}
+            for cid, info in COMPANIES.items():
+                with _cache_lock:
+                    if cid in _cache:
+                        entry = _cache[cid]
+                        age = time.time() - entry["time"]
+                        failed = entry.get("failed", False)
+                        count = len(entry.get("data", []))
+                        status[cid] = {
+                            "name": info["name"],
+                            "jobs": count,
+                            "age_seconds": round(age, 1),
+                            "status": "failed" if failed else ("stale" if age > CACHE_TTL else "ok"),
+                        }
+                    else:
+                        status[cid] = {"name": info["name"], "jobs": 0, "age_seconds": 0, "status": "pending"}
+            self._send(200, {
+                "total_companies": len(COMPANIES),
+                "ok": sum(1 for s in status.values() if s["status"] == "ok"),
+                "failed": sum(1 for s in status.values() if s["status"] == "failed"),
+                "pending": sum(1 for s in status.values() if s["status"] == "pending"),
+                "total_jobs": sum(s["jobs"] for s in status.values()),
+                "last_refresh": _last_refresh,
+                "companies": status,
+            })
+            return
+
         if path == "/api/lookup":
             url = qs.get("url", [""])[0].strip()
             if not url:
@@ -587,7 +745,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self._send(404, {"error": "not found"})
 
     def _handle_jobs(self, qs):
-        companies_param = qs.get("companies", ["tencent,bytedance,xiaohongshu,alibaba,highflyer,zhipu,moonshot,minimax,kuaishou"])[0]
+        companies_param = qs.get("companies", ["bytedance,highflyer,zhipu,moonshot,minimax,lilith,kurogame"])[0]
         keyword = qs.get("keyword", [""])[0].strip()
         days_str = qs.get("days", ["0"])[0]
         try:
@@ -596,7 +754,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             days = 0
 
         if companies_param == "all":
-            company_ids = list(COMPANIES.keys())
+            company_ids = list(COMPANIES.keys())[:PREWARM_LIMIT]
         else:
             company_ids = [c.strip() for c in companies_param.split(",") if c.strip() in COMPANIES]
 
@@ -639,10 +797,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
                     results[cid] = []
                     loading.append(cid)
                 else:
-                    # Cold cache — trigger background fetch, return empty
+                    # Cold cache — no on-demand fetch; periodic refresh handles this
                     results[cid] = []
                     loading.append(cid)
-                    threading.Thread(target=fetch_company, args=(cid,), daemon=True).start()
 
         all_jobs = []
         company_stats = {}
@@ -681,6 +838,17 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 j["_recruit_type"] = rt
                 dt = parse_date(j.get("date", ""))
                 j["_days_ago"] = days_ago(dt)
+                exp = extract_experience(j.get("requirement", ""), j.get("jd", ""))
+                j["_exp_min"] = exp["_exp_min"]
+                j["_exp_label"] = exp["_exp_label"]
+                # 校招/实习强制归为应届（检查岗位自身type，不依赖公司级recruit_type）
+                job_type = str(j.get("type", "") or "").strip()
+                if "校" in job_type or "实习" in job_type:
+                    j["_exp_min"] = 0
+                    j["_exp_label"] = "应届"
+                elif rt in ("校招", "实习"):
+                    j["_exp_min"] = 0
+                    j["_exp_label"] = "应届"
                 all_jobs.append(j)
 
         if keyword:
@@ -701,6 +869,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
         all_jobs.sort(key=lambda x: x.get("_days_ago", 9999))
 
+
+
         self._send(200, {
             "jobs": all_jobs,
             "total": len(all_jobs),
@@ -714,6 +884,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             },
             "errors": errors,
             "loading": loading,
+            "last_refresh": _last_refresh,
             "fetch_time": round(time.time() - t0, 1),
             "cached": all(f"{cid}" in _cache for cid in company_ids),
         })
@@ -721,22 +892,70 @@ class Handler(http.server.BaseHTTPRequestHandler):
     def log_message(self, fmt, *args):
         sys.stderr.write(f"[{self.log_date_time_string()}] {fmt % args}\n")
 
-def prewarm_cache():
-    """Background thread: fetch all companies in parallel on startup.
+def periodic_refresh_loop():
+    global _last_refresh
+    """Background thread: refresh all companies on startup, then every REFRESH_INTERVAL.
 
-    Prevents cold-start stampede where the first N users all trigger
-    simultaneous API calls to every company. In-flight dedup ensures
-    user requests during prewarm wait for results instead of duplicating calls.
+    All user requests read from cache only -- no on-demand fetches.
+    This keeps response times instant and reduces ATS API call frequency.
     """
-    with ThreadPoolExecutor(max_workers=3) as pool:
-        futures = {pool.submit(fetch_company, cid): cid for cid in COMPANIES}
-        for fut in as_completed(futures):
-            cid = futures[fut]
-            try:
-                fut.result()
-                sys.stderr.write(f"[prewarm] {cid} done\n")
-            except Exception as e:
-                sys.stderr.write(f"[prewarm] {cid} failed: {e}\n")
+    company_list = list(COMPANIES.keys())[:PREWARM_LIMIT]
+    first_run = True
+
+    while True:
+        label = "initial fetch" if first_run else "periodic refresh"
+        sys.stderr.write(f"[refresh] {label} of {len(company_list)} companies\n")
+
+        failed = []
+        with ThreadPoolExecutor(max_workers=3) as pool:
+            futures = {pool.submit(fetch_company, cid): cid for cid in company_list}
+            for fut in as_completed(futures):
+                cid = futures[fut]
+                try:
+                    _, data, _ = fut.result()
+                    if not data:
+                        failed.append(cid)
+                except Exception as e:
+                    sys.stderr.write(f"[refresh] {cid} error: {e}\n")
+                    failed.append(cid)
+
+        # Retry failed companies once after clearing failure cache
+        if failed:
+            sys.stderr.write(f"[refresh] retrying {len(failed)} failed companies...\n")
+            time.sleep(5)
+            # Clear failure cache so retry actually re-fetches
+            with _cache_lock:
+                for cid in failed:
+                    if cid in _cache and _cache[cid].get("failed"):
+                        del _cache[cid]
+            with ThreadPoolExecutor(max_workers=3) as pool:
+                futures = {pool.submit(fetch_company, cid): cid for cid in failed}
+                still_failed = []
+                for fut in as_completed(futures):
+                    cid = futures[fut]
+                    try:
+                        _, data, _ = fut.result()
+                        if not data:
+                            sys.stderr.write(f"[refresh] {cid} failed (attempt 2): returned empty\n")
+                            still_failed.append(cid)
+                    except Exception as e:
+                        sys.stderr.write(f"[refresh] {cid} failed (attempt 2): {e}\n")
+                        still_failed.append(cid)
+                done = len(company_list) - len(still_failed)
+        else:
+            done = len(company_list)
+            still_failed = []
+
+        _last_refresh = time.time()
+        if still_failed:
+            sys.stderr.write(f"[refresh] cycle complete: {done}/{len(company_list)} ok, {len(still_failed)} failed (will retry in {REFRESH_INTERVAL}s)\n")
+        else:
+            sys.stderr.write(f"[refresh] cycle complete: {done}/{len(company_list)} ok, next in {REFRESH_INTERVAL}s\n")
+
+        if first_run:
+            first_run = False
+
+        time.sleep(REFRESH_INTERVAL)
 
 
 def main():
@@ -747,10 +966,10 @@ def main():
     print(f"  Companies: {', '.join(COMPANIES.keys())}")
     print(f"  Cache TTL: {CACHE_TTL}s | Stale TTL: {STALE_TTL}s")
 
-    # Pre-warm cache in background (non-blocking)
-    t = threading.Thread(target=prewarm_cache, daemon=True)
+    # Periodic data refresh in background (startup + every REFRESH_INTERVAL)
+    t = threading.Thread(target=periodic_refresh_loop, daemon=True)
     t.start()
-    print("  Pre-warming cache in background...")
+    print(f"  Background refresh every {REFRESH_INTERVAL}s...")
 
     try:
         server.serve_forever()

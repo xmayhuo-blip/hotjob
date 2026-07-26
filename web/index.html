@@ -164,6 +164,13 @@ body {
   background: var(--card); border-radius: var(--radius); border: 1px solid var(--border);
   box-shadow: var(--shadow); overflow: hidden;
 }
+.results-summary {
+  padding: 10px 20px; border-bottom: 1px solid var(--border);
+  font-size: 13px; color: var(--text-2); background: #FAFBFC;
+}
+.results-summary .results-count strong {
+  color: var(--primary); font-weight: 700; font-size: 15px;
+}
 .table-header {
   display: grid; grid-template-columns: minmax(0, 2fr) 110px 90px 110px 40px;
   padding: 12px 20px; background: #FAFBFC; border-bottom: 1px solid var(--border);
@@ -231,8 +238,9 @@ body {
 /* ===== Detail Panel ===== */
 .detail-panel {
   background: var(--card); border-radius: var(--radius); border: 1px solid var(--border);
-  box-shadow: var(--shadow); min-height: 400px; position: sticky; top: 76px;
+  box-shadow: var(--shadow); position: sticky; top: 76px;
   display: flex; flex-direction: column;
+  max-height: calc(100vh - 92px);
 }
 .detail-empty {
   flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -245,7 +253,7 @@ body {
 .detail-empty .title { font-size: 14px; font-weight: 600; color: var(--text-2); margin-bottom: 4px; }
 .detail-empty .sub { font-size: 12px; color: var(--text-3); }
 .detail-header {
-  padding: 20px; border-bottom: 1px solid var(--border);
+  padding: 20px; border-bottom: 1px solid var(--border); flex-shrink: 0;
 }
 .detail-header .top {
   display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 10px;
@@ -258,7 +266,7 @@ body {
 }
 .detail-header .meta span { display: flex; align-items: center; gap: 4px; }
 .detail-body {
-  flex: 1; padding: 20px; overflow-y: auto; max-height: 520px;
+  flex: 1; padding: 20px; overflow-y: auto; min-height: 0;
 }
 .detail-body h4 {
   font-size: 13px; font-weight: 700; color: var(--text); margin: 20px 0 10px;
@@ -272,8 +280,11 @@ body {
   font-size: 13px; color: var(--text-3); line-height: 1.8; font-style: italic;
 }
 .detail-footer {
-  padding: 16px 20px; border-top: 1px solid var(--border);
+  padding: 16px 20px; border-top: 1px solid var(--border); flex-shrink: 0;
 }
+.detail-body::-webkit-scrollbar { width: 5px; }
+.detail-body::-webkit-scrollbar-thumb { background: #D0D8E8; border-radius: 3px; }
+.detail-body::-webkit-scrollbar-track { background: transparent; }
 .detail-footer .btn-primary {
   width: 100%; padding: 11px; border: none; border-radius: var(--radius-sm);
   background: var(--primary); color: #fff; font-size: 14px; font-weight: 600;
@@ -420,7 +431,14 @@ body {
   .filter-bar { flex-direction: column; align-items: stretch; }
   .search-box, .filter-select, .btn-clear { width: 100%; }
   .table-header, .job-row { grid-template-columns: 1fr; gap: 6px; }
-  .table-header { display: none; }
+  .results-summary {
+  padding: 10px 20px; border-bottom: 1px solid var(--border);
+  font-size: 13px; color: var(--text-2); background: #FAFBFC;
+}
+.results-summary .results-count strong {
+  color: var(--primary); font-weight: 700; font-size: 15px;
+}
+.table-header { display: none; }
   .job-row { padding: 14px 16px; }
   .cell-arrow { display: none; }
   .link-hero h1 { font-size: 26px; }
@@ -453,8 +471,8 @@ body {
   <div class="hero">
     <div class="hero-left">
       <div class="hero-tag">社招 · 校招 · 实习</div>
-      <h1>你就是下一个<br>Offer Getter</h1>
-      <p>根据时间看哪些岗位是新发布的再投递，<br>投递发布已久的岗位不是你没能力，而是根本不招人！</p>
+      <h1>查询最新岗位</h1>
+      <p>直连企业招聘系统，按发布时间排序，<br>只投刚发布的岗位，拒绝无效海投。</p>
     </div>
     <div class="hero-right">
       <div class="stat-cards">
@@ -497,6 +515,7 @@ body {
       <option value="">全部类型</option>
       <option value="社招">社招</option>
       <option value="校招">校招</option>
+      <option value="实习">实习</option>
     </select>
     <select class="filter-select" id="functionSelect">
       <option value="">全部职类</option>
@@ -514,6 +533,14 @@ body {
       <option value="安全">安全</option>
       <option value="项目">项目管理</option>
       <option value="其他">其他</option>
+    </select>
+    <select class="filter-select" id="expSelect">
+      <option value="">经验不限</option>
+      <option value="0">应届</option>
+      <option value="1">1-3年</option>
+      <option value="3">3-5年</option>
+      <option value="5">5-10年</option>
+      <option value="10">10年+</option>
     </select>
     <select class="filter-select" id="daysSelect">
       <option value="0">全部时间</option>
@@ -584,6 +611,7 @@ const state = {
   city: "",
   recruitType: "",
   jobFunction: "",
+  experience: "",
   days: 7,
   jobs: [],
   allCities: [],
@@ -638,13 +666,26 @@ document.querySelectorAll('.nav-tab').forEach(btn => {
 });
 
 // ===== Company Select =====
-function initCompanySelect() {
+async function initCompanySelect() {
   const sel = document.getElementById('companySelect');
-  for (const [id, info] of Object.entries(COMPANIES)) {
-    const opt = document.createElement('option');
-    opt.value = id;
-    opt.textContent = info.name;
-    sel.appendChild(opt);
+  try {
+    const res = await fetch('/api/companies');
+    const data = await res.json();
+    const companies = data.companies || COMPANIES;
+    for (const [id, info] of Object.entries(companies)) {
+      const opt = document.createElement('option');
+      opt.value = id;
+      opt.textContent = info.name || id;
+      sel.appendChild(opt);
+    }
+  } catch {
+    // Fallback to hardcoded list
+    for (const [id, info] of Object.entries(COMPANIES)) {
+      const opt = document.createElement('option');
+      opt.value = id;
+      opt.textContent = info.name;
+      sel.appendChild(opt);
+    }
   }
 }
 
@@ -705,30 +746,43 @@ async function fetchData() {
     refreshCitySelect();
     renderStats(data);
     renderTable(getFilteredJobs());
-    document.getElementById('updateTime').textContent = `更新于 ${new Date().toLocaleTimeString('zh-CN')}`;
+    const refreshTs = data.last_refresh || 0;
+    const refreshStr = refreshTs ? `更新于 ${new Date(refreshTs * 1000).toLocaleTimeString('zh-CN')}` : '更新于 --:--';
+    document.getElementById('updateTime').textContent = refreshStr;
 
     // Show failed companies (non-blocking, no auto-refresh)
-    const failedNames = Object.keys(data.errors || {}).map(c => (COMPANIES[c] || {}).name || c).filter(Boolean);
+    const failedNames = Object.keys(data.errors || {}).map(c => {
+    if (COMPANIES[c]) return COMPANIES[c].name;
+    try { const d = data.companies && data.companies[c]; return (d && d.name) || c; } catch { return c; }
+  }).filter(Boolean);
     if (failedNames.length > 0) {
       state.retryCount = 0;  // reset retry count since these are permanent failures
       area.insertAdjacentHTML('afterbegin',
-        `<div class="loading-banner" style="border-color:#ffe0e0;background:#fff5f5;color:#c0392b;">⚠️ ${failedNames.join('、')} 数据暂时获取失败，不影响其他公司岗位浏览</div>`);
+        `<div class="loading-banner" style="border-color:#ffe0e0;background:#fff5f5;color:#c0392b;">${failedNames.join('、')} 数据暂未更新</div>`);
     }
 
     // Auto-refresh only if some companies are still loading (cold cache)
     if (data.loading && data.loading.length > 0 && state.retryCount < 3) {
       state.retryCount++;
-      const loadingNames = data.loading.map(c => (COMPANIES[c] || {}).name || c).join('、');
+      const loadingNames = data.loading.map(c => {
+    if (COMPANIES[c]) return COMPANIES[c].name;
+    try { const d = data.companies && data.companies[c]; return (d && d.name) || c; } catch { return c; }
+  }).join('、');
       area.insertAdjacentHTML('afterbegin',
-        `<div class="loading-banner">⏳ 正在获取 ${loadingNames} 的岗位数据，几秒后自动刷新... (${state.retryCount}/3)</div>`);
+        `<div class="loading-banner">${loadingNames} 数据加载中，稍后自动刷新 (${state.retryCount}/3)</div>`);
       state.loading = false;  // allow re-fetch
       setTimeout(() => { if (!state.loading) fetchData(); }, 8000);
       return;
     }
   } catch (e) {
-    area.innerHTML = `<div class="empty"><div class="icon">⚠️</div><div class="title">获取数据失败</div><p>${e.message}</p></div>`;
+    area.innerHTML = `<div class="empty"><div class="icon">⚠️</div><div class="title">获取失败，请稍后重试</div></div>`;
   }
   state.loading = false;
+  
+  // Auto-retry if no jobs yet and initial data might still be loading
+  if (!state.jobs.length && !state._retryTimer) {
+    state._retryTimer = setTimeout(() => { state._retryTimer = null; fetchData(); }, 5000);
+  }
 }
 
 function renderStats(data) {
@@ -751,6 +805,13 @@ function getFilteredJobs() {
   if (state.jobFunction) {
     filtered = filtered.filter(j => classifyFunction(j.title, j.dept) === state.jobFunction);
   }
+  if (state.experience) {
+    const expMin = parseInt(state.experience);
+    filtered = filtered.filter(j => {
+      if (j._exp_min === undefined || j._exp_min === null || j._exp_min === -1) return false;
+      return j._exp_min >= expMin;
+    });
+  }
   filtered.sort((a, b) => (a._days_ago || 9999) - (b._days_ago || 9999));
   return filtered;
 }
@@ -759,7 +820,13 @@ function getFilteredJobs() {
 function renderTable(jobs) {
   const area = document.getElementById('jobsTableArea');
   if (!jobs || jobs.length === 0) {
-    area.innerHTML = `<div class="empty"><div class="icon">📋</div><div class="title">没有找到匹配的岗位</div><p>试试调整筛选条件或扩大时间范围</p></div>`;
+    if (!state.jobs.length && !state.loading) {
+    // Check if initial refresh might still be running
+    area.innerHTML = `<div class="loading"><div class="spinner"></div><p>正在获取最新岗位数据，预计30秒内完成...</p><p style="font-size:12px;color:#999;margin-top:8px;">首次启动需从各企业招聘系统拉取数据</p></div>
+    `;
+    return;
+  }
+  area.innerHTML = `<div class="empty"><div class="icon">📋</div><div class="title">暂无数据</div></div>`;
     return;
   }
   const total = jobs.length;
@@ -802,6 +869,9 @@ function renderTable(jobs) {
   }).join("");
 
   area.innerHTML = `
+    <div class="results-summary">
+      <span class="results-count">共 <strong>${total}</strong> 个岗位</span>
+    </div>
     <div class="table-header">
       <div>职位信息</div><div>地点</div><div>招聘类型</div><div>发布时间</div><div></div>
     </div>
@@ -814,8 +884,16 @@ function renderTable(jobs) {
 
   area.querySelectorAll('.job-row').forEach((row, idx) => {
     row.addEventListener('click', () => {
+      // Toggle selection: deselect if clicking the same row twice
+      if (state.selectedJob === pageJobs[idx]) {
+        state.selectedJob = null;
+        row.classList.remove('active');
+        renderDetail();
+        return;
+      }
+      area.querySelectorAll('.job-row.active').forEach(r => r.classList.remove('active'));
+      row.classList.add('active');
       state.selectedJob = pageJobs[idx];
-      renderTable(jobs);
       renderDetail();
     });
   });
@@ -862,12 +940,42 @@ function renderDetail() {
       </div>
     </div>
     <div class="detail-body">
-      <h4>岗位描述</h4>
-      ${descHtml}
+      ${
+        (() => {
+          const duty = j.responsibility || '';
+          const req = j.requirement || '';
+          if (duty || req) {
+            let html = '';
+            if (duty && duty.trim().length > 5) {
+              const dutyLines = String(duty).split(/\n+/).filter(l => l.trim());
+              html += '<h4>岗位职责</h4>' + dutyLines.map(l => `<p>${escapeHtml(l.trim())}</p>`).join('');
+            }
+            if (req && req.trim().length > 5) {
+              const reqLines = String(req).split(/\n+/).filter(l => l.trim());
+              html += '<h4>岗位要求</h4>' + reqLines.map(l => `<p>${escapeHtml(l.trim())}</p>`).join('');
+            }
+            if (html) return html;
+          }
+          // Fallback: try splitting combined JD
+          const jd = j.description || j.jd || j.detail || '';
+          if (jd && jd.trim().length > 10) {
+            const parts = String(jd).split(/\n\n/);
+            if (parts.length >= 2 && parts[0].trim().length > 5 && parts[1].trim().length > 5) {
+              const dutyLines = parts[0].split(/\n+/).filter(l => l.trim());
+              const reqLines = parts[1].split(/\n+/).filter(l => l.trim());
+              return '<h4>岗位职责</h4>' + dutyLines.map(l => `<p>${escapeHtml(l.trim())}</p>`).join('')
+                   + '<h4>岗位要求</h4>' + reqLines.map(l => `<p>${escapeHtml(l.trim())}</p>`).join('');
+            }
+            // Single section JD
+            const lines = String(jd).split(/\n+/).filter(l => l.trim());
+            return '<h4>岗位描述</h4>' + lines.map(l => `<p>${escapeHtml(l.trim())}</p>`).join('');
+          }
+          return '<p class="placeholder">该岗位未提供详细描述，建议前往官网查看完整信息。</p>';
+        })()
+      }
     </div>
     <div class="detail-footer">
-      <a class="btn-primary" href="${escapeHtml(j.url || '#')}" target="_blank" rel="noopener">前往官网投递 ↗</a>
-      <div class="btn-hint">将在新标签页打开官方招聘页面</div>
+      ${j.url && j.url !== '#' ? `<a class="btn-primary" href="${escapeHtml(j.url)}" target="_blank" rel="noopener">前往官网投递 ↗</a><div class="btn-hint">将在新标签页打开官方招聘页面</div>` : '<div class="btn-hint" style="color:#999">暂无详情页链接，请到官网搜索该岗位</div>'}
     </div>`;
   document.getElementById('closeDetail').addEventListener('click', (e) => {
     e.stopPropagation();
@@ -905,6 +1013,12 @@ document.getElementById('recruitTypeSelect').addEventListener('change', e => {
   renderTable(getFilteredJobs());
 });
 
+document.getElementById('expSelect').addEventListener('change', e => {
+  state.experience = e.target.value;
+  state.page = 1;
+  renderTable(getFilteredJobs());
+});
+
 document.getElementById('functionSelect').addEventListener('change', e => {
   state.jobFunction = e.target.value;
   state.page = 1;
@@ -912,7 +1026,7 @@ document.getElementById('functionSelect').addEventListener('change', e => {
 });
 
 document.getElementById('clearFilters').addEventListener('click', () => {
-  state.keyword = ""; state.city = ""; state.recruitType = ""; state.jobFunction = ""; state.days = 7; state.company = "";
+  state.keyword = ""; state.city = ""; state.recruitType = ""; state.jobFunction = ""; state.experience = ""; state.days = 7; state.company = "";
   document.getElementById('keywordInput').value = "";
   document.getElementById('citySelect').value = "";
   document.getElementById('recruitTypeSelect').value = "";
@@ -978,7 +1092,7 @@ async function lookupLink() {
         </div>
       </div>`;
   } catch (e) {
-    resultEl.innerHTML = `<div class="empty"><div class="icon">⚠️</div><div class="title">解析失败</div><p>${e.message}</p></div>`;
+    resultEl.innerHTML = `<div class="empty"><div class="icon">⚠️</div><div class="title">解析失败，请确认链接正确</div></div>`;
   }
   btn.disabled = false; btn.textContent = '解析链接';
 }

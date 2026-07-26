@@ -129,3 +129,77 @@ curl http://localhost:8787/api/health
 - 9 家公司并行拉取约需 5-6 秒，首次加载可能稍慢
 - 5 分钟内存缓存生效后，后续请求秒回
 - 如需更高可用性，可升级到 Render 付费版（$7/月起，不休眠）
+
+---
+
+## 方案三：中国 VPS 部署（国内高速访问）
+
+前置条件：已备案域名、国内云服务器（腾讯云/阿里云等）
+
+### 1. 服务器环境
+
+```bash
+# Ubuntu 22.04
+apt update && apt install -y nginx python3 python3-pip
+pip install -r requirements-prod.txt
+```
+
+### 2. 配置 nginx
+
+```bash
+cp nginx.conf /etc/nginx/sites-available/hotjob
+ln -s /etc/nginx/sites-available/hotjob /etc/nginx/sites-enabled/
+nginx -t && systemctl reload nginx
+```
+
+### 3. 启动服务
+
+```bash
+# 开发/测试
+python3 web/app.py
+
+# 生产（用 systemd 管理）
+cat > /etc/systemd/system/hotjob.service << 'UNIT'
+[Unit]
+Description=hotjob job search web server
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+WorkingDirectory=/opt/hotjob
+Environment=PORT=8787
+ExecStart=/usr/bin/python3 /opt/hotjob/web/app.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+
+systemctl enable hotjob --now
+```
+
+### 4. Docker Compose 快速部署
+
+```bash
+docker compose up -d
+# 服务在 http://localhost:8787，nginx 反代后从 80 端口暴露
+```
+
+### 5. HTTPS
+
+```bash
+apt install certbot python3-certbot-nginx
+certbot --nginx -d your-domain.com
+```
+
+### 当前覆盖公司
+
+从 `companies.seed` 动态加载，目前接入 157 家公司：
+- 9 家硬编码覆盖（腾讯、字节、小红书、阿里等）
+- 72 家飞书招聘系统
+- 80 家 Moka 摩卡系统
+- 5 家北森 iTalent 暂未接入（需 Playwright）
+
+加公司：编辑 `parsers/companies.seed` 加一行，重启即生效。

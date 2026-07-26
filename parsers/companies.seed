@@ -104,6 +104,8 @@ shiyue | moka | 诗悦网络 | shiyuehr | 72054 | 游戏
 shangyou | moka | 尚游游戏 | shangyou | 42165 | 游戏
 hypergryph | moka | 鹰角网络 | hypergryph | 28713 | 游戏
 ztgame | moka | 中手游 | ztgame | 92438 | 游戏
+mihoyo | moka | 米哈游 | mihoyo | 42207 | 游戏
+papergames | moka | 叠纸 | papergames | 6616 | 游戏
 # --- 外企中国区 ---
 bayer | moka | 拜耳中国 | bayer | 148387 | 外企
 ey | moka | 安永 | ey | 102474 | 外企
@@ -174,7 +176,7 @@ zte | moka | 中兴 | zte | 47588 | 通信
 eastmoney | moka | 东方财富 | eastmoney | 57970 | 金融科技
 westlake | moka | 西湖大学 | westlake | 43525 | 科研
 
-# ========== 北森招聘（type=beisen · {slug}.zhiye.com 公开接口 GetJobAdPageList）==========
+# ========== 北森招聘 (iTalent SPA -- needs Playwright; currently SKIPPED in web loader) ==========（type=beisen · {slug}.zhiye.com 公开接口 GetJobAdPageList）==========
 dreame | beisen | 追觅 | dreame |  | 智能清洁/造车/机器人
 chery | beisen | 奇瑞汽车 | chery |  | 车企
 leapmotor | beisen | 零跑汽车 | leapmotor |  | 新势力车企

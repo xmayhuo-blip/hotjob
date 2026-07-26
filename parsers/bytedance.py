@@ -55,6 +55,8 @@ def fetch(keyword="", pages=4, limit=30):
                 "dept": dept,
                 "date": pt,
                 "jd": jd,
+                "responsibility": j.get("description", ""),
+                "requirement": j.get("requirement", ""),
                 "url": f"https://jobs.bytedance.com/experienced/position/{jid}/detail",
                 "id": jid,
             })

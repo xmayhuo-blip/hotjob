@@ -52,7 +52,8 @@ def _fmt_ts(ts):
 def _get_token_and_cookies(domain):
     """GET 页面，提取 __token__ 和 cookies。"""
     cj = http.cookiejar.CookieJar()
-    opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(cj))
+    https_handler = urllib.request.HTTPSHandler(context=CTX)
+    opener = urllib.request.build_opener(https_handler, urllib.request.HTTPCookieProcessor(cj))
     url = f"https://{domain}/off-campus/position-list?lang=zh"
     req = urllib.request.Request(url, headers={"User-Agent": UA})
     resp = opener.open(req, timeout=25)
@@ -129,6 +130,19 @@ def fetch(keyword="", pages=1, size=500, domain="talent.alibaba.com"):
                 _strip(j.get("description", "")),
                 _strip(j.get("requirement", "")),
             ] if x)
+            # Extract raw fields from API response for _normalize_local to find
+            raw_url = j.get("url") or j.get("applyUrl") or j.get("apply_url") or j.get("link") or j.get("jobUrl") or j.get("job_url") or j.get("detailUrl") or j.get("postUrl") or j.get("href") or ""
+            constructed_url = ""
+            if not raw_url and jid and jid.isdigit() and jid != "0":
+                # Holding: detail page works. Main: try multiple formats.
+                if "holding" in domain:
+                    constructed_url = f"https://{domain}/off-campus/position-detail?lang=zh&positionId={jid}"
+                else:
+                    # Main site: try positionId-first (original format), then off-campus, then direct
+                    # Main Alibaba site has NO position-detail route in JS bundle
+                    # (confirmed by JS analysis: only position-list routes exist)
+                    constructed_url = f"https://{domain}/off-campus/position-list?lang=zh"
+            
             out.append({
                 "title": j.get("name", ""),
                 "company": "阿里巴巴",
@@ -137,7 +151,14 @@ def fetch(keyword="", pages=1, size=500, domain="talent.alibaba.com"):
                 "date": _fmt_ts(j.get("publishTime", "")),
                 "date_updated": _fmt_ts(j.get("modifyTime", "")),
                 "jd": jd,
-                "url": f"https://{domain}/off-campus/position-detail?positionId={jid}" if jid else "",
+                "responsibility": _strip(j.get("description", "")),
+                "requirement": _strip(j.get("requirement", "")),
+                "url": raw_url or constructed_url,
+                "applyUrl": j.get("applyUrl") or "",
+                "apply_url": j.get("apply_url") or "",
+                "jobUrl": j.get("jobUrl") or j.get("job_url") or "",
+                "detailUrl": j.get("detailUrl") or j.get("postUrl") or "",
+                "link": j.get("link") or j.get("href") or "",
                 "id": jid,
             })
 

@@ -97,6 +97,8 @@ def fetch(host, company, keyword="", pages=8, limit=50):
                 "type": rt.get("name", "") if isinstance(rt, dict) else "",
                 "date": pt,
                 "jd": jd,
+                "responsibility": j.get("description", ""),
+                "requirement": j.get("requirement", ""),
                 "url": f"https://{host}/{path}/position/{jid}/detail",
                 "id": jid,
             })

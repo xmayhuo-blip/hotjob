@@ -1,0 +1,14 @@
+version: "3.8"
+services:
+  app:
+    build: .
+    ports:
+      - "8787:8787"
+    restart: unless-stopped
+    environment:
+      - PORT=8787
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./parsers:/app/parsers:ro
+      - ./web:/app/web:ro
+      - ./hiring_radar.py:/app/hiring_radar.py:ro

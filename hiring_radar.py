@@ -71,7 +71,8 @@ for _spec in LOCAL_PARSERS.values():
         _spec["command"] = _PY
 
 FIELDS = ["title", "company", "dept", "team", "location", "remote", "type",
-          "date", "date_updated", "req_id", "comp", "jd", "url", "apply_url", "id"]
+          "date", "date_updated", "req_id", "comp", "jd", "url", "apply_url", "id",
+          "responsibility", "requirement"]
 
 def _rec(**kw):
     r = {k: "" for k in FIELDS}
@@ -559,6 +560,8 @@ def _normalize_local(j):
         type=pick("type", "job_type", "employment_type"),
         date=pick("date", "postedAt", "posted_at", "published_at", "created_at", "pub_date", "publish_time"),
         comp=pick("comp", "salary", "compensation"),
+        responsibility=pick("responsibility", "duty", ""),
+        requirement=pick("requirement", "qualification", "qual", ""),
         req_id=str(pick("req_id", "requisition_id") or ""),
         jd=_strip(pick("jd", "description", "content", "requirement")),
         url=pick("url", "jobUrl", "job_url", "applyUrl", "apply_url", "link", "hostedUrl", "absolute_url"),
