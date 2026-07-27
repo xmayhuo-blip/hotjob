@@ -102,20 +102,20 @@ def _load_seed_companies():
 
 
 def _build_companies():
-    """Merge hardcoded overrides with seed-loaded companies (hardcoded wins)."""
+    """Build the company registry. Hardcoded companies + seed-loaded feishu/moka."""
     base = {
+        "tencent":    {"name": "腾讯",     "color": "#00A4FF", "url": "https://careers.tencent.com/", "recruit_type": "社招"},
         "bytedance":  {"name": "字节跳动",  "color": "#2B2B2B", "url": "https://jobs.bytedance.com/", "recruit_type": "社招"},
+        "xiaohongshu":{"name": "小红书",    "color": "#FF2442", "url": "https://job.xiaohongshu.com/", "recruit_type": "社招"},
+        "alibaba":    {"name": "阿里巴巴",  "color": "#FF6A00", "url": "https://talent.alibaba.com/", "recruit_type": "社招"},
         "highflyer":  {"name": "DeepSeek", "color": "#6C5CE7", "url": "https://app.mokahr.com/social-recruitment/high-flyer/140576", "recruit_type": "社招"},
         "zhipu":      {"name": "智谱AI",   "color": "#00B894", "url": "https://zhipu-ai.jobs.feishu.cn/", "recruit_type": "社招"},
         "moonshot":   {"name": "月之暗面",  "color": "#E84393", "url": "https://app.mokahr.com/apply/moonshot/148506"},
         "minimax":    {"name": "MiniMax",  "color": "#0984E3", "url": "https://www.minimaxi.com/careers"},
-        "lilith":     {"name": "莉莉丝",     "color": "#9B59B6", "url": "https://lilithgames.jobs.feishu.cn/", "recruit_type": "社招"},
-        "kurogame":   {"name": "库洛游戏",   "color": "#F39C12", "url": "https://kurogame.jobs.feishu.cn/", "recruit_type": "社招"},
+        "kuaishou":   {"name": "快手",     "color": "#E17055", "url": "https://zhaopin.kuaishou.cn/", "recruit_type": "社招"},
+        "lilith":     {"name": "莉莉丝",   "color": "#9B59B6", "url": "https://lilithgames.jobs.feishu.cn/", "recruit_type": "社招"},
+        "kurogame":   {"name": "库洛游戏", "color": "#F39C12", "url": "https://kurogame.jobs.feishu.cn/", "recruit_type": "社招"},
     }
-    # Currently focusing on the 9 verified companies for reliability.
-    # Seed loading infrastructure kept for future expansion:
-    #   seed = _load_seed_companies()
-    #   merged = dict(base); merged.update(seed); return merged
     return base
 
 
@@ -321,15 +321,18 @@ def days_ago(dt):
 # ===== URL → company / job id parsing for link lookup =====
 URL_PATTERNS = [
     # (company_id, domain_keyword, [id_regex_patterns])
-    ("tencent",     "careers.tencent.com",      [r"[?&]postId=([0-9]+)", r"[?&]id=([0-9]+)", r"/post/([0-9]+)\\.html", r"/post/([0-9]+)"]),
-    ("bytedance",   "jobs.bytedance.com",       [r"/position/([0-9]+)/detail", r"/position/([0-9]+)"]),
-    ("xiaohongshu", "job.xiaohongshu.com",      [r"[?&]positionId=([0-9a-zA-Z]+)", r"/position/([0-9a-zA-Z]+)"]),
-    ("alibaba",     "talent.alibaba.com",       [r"[?&]positionId=([0-9a-zA-Z]+)", r"/position/([0-9a-zA-Z]+)"]),
-    ("kuaishou",    "zhaopin.kuaishou.cn",      [r"[?&]id=([0-9a-zA-Z-]+)", r"/job/([0-9a-zA-Z-]+)", r"#/job/([0-9a-zA-Z-]+)"]),
-    ("highflyer",   "app.mokahr.com",           [r"#/job/([0-9a-zA-Z-]+)", r"/job/([0-9a-zA-Z-]+)"]),
-    ("moonshot",    "app.mokahr.com",           [r"#/job/([0-9a-zA-Z-]+)", r"/job/([0-9a-zA-Z-]+)"]),
-    ("zhipu",       "jobs.feishu.cn",           [r"[?&]id=([0-9a-zA-Z-]+)", r"/position/([0-9a-zA-Z-]+)"]),
-    ("minimax",     "jobs.feishu.cn",           [r"[?&]id=([0-9a-zA-Z-]+)", r"/position/([0-9a-zA-Z-]+)"]),
+    ("tencent",     "careers.tencent.com",        [r"[?&]postId=([0-9]+)", r"[?&]id=([0-9]+)", r"/post/([0-9]+)\\.html", r"/post/([0-9]+)"]),
+    ("bytedance",   "jobs.bytedance.com",         [r"/position/([0-9]+)/detail", r"/position/([0-9]+)"]),
+    ("xiaohongshu", "job.xiaohongshu.com",        [r"[?&]positionId=([0-9a-zA-Z]+)", r"/position/([0-9a-zA-Z]+)"]),
+    ("alibaba",     "talent.alibaba.com",         [r"[?&]positionId=([0-9a-zA-Z]+)", r"/position/([0-9a-zA-Z]+)"]),
+    ("kuaishou",    "zhaopin.kuaishou.cn",        [r"[?&]id=([0-9a-zA-Z-]+)", r"/job/([0-9a-zA-Z-]+)", r"#/job/([0-9a-zA-Z-]+)"]),
+    ("highflyer",   "app.mokahr.com",             [r"#/job/([0-9a-zA-Z-]+)", r"/job/([0-9a-zA-Z-]+)"]),
+    ("moonshot",    "app.mokahr.com",             [r"#/job/([0-9a-zA-Z-]+)", r"/job/([0-9a-zA-Z-]+)"]),
+    # Feishu: each company has its own subdomain — use full subdomain to disambiguate
+    ("zhipu",       "zhipu-ai.jobs.feishu.cn",    [r"[?&]id=([0-9a-zA-Z-]+)", r"/position/([0-9a-zA-Z-]+)"]),
+    ("minimax",     "vrfi1sk8a0.jobs.feishu.cn",  [r"[?&]id=([0-9a-zA-Z-]+)", r"/position/([0-9a-zA-Z-]+)"]),
+    ("lilith",      "lilithgames.jobs.feishu.cn", [r"[?&]id=([0-9a-zA-Z-]+)", r"/position/([0-9a-zA-Z-]+)"]),
+    ("kurogame",    "kurogame.jobs.feishu.cn",    [r"[?&]id=([0-9a-zA-Z-]+)", r"/position/([0-9a-zA-Z-]+)"]),
 ]
 
 def identify_company(url):
@@ -361,6 +364,10 @@ def identify_company(url):
         return "zhipu"
     if "highflyer" in url_lower or "deepseek" in url_lower:
         return "highflyer"
+    if "lilith" in url_lower or "lilithgames" in url_lower:
+        return "lilith"
+    if "kurogame" in url_lower or "kuro" in url_lower:
+        return "kurogame"
     return None
 
 def extract_job_id(url, patterns):
@@ -745,7 +752,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self._send(404, {"error": "not found"})
 
     def _handle_jobs(self, qs):
-        companies_param = qs.get("companies", ["bytedance,highflyer,zhipu,moonshot,minimax,lilith,kurogame"])[0]
+        companies_param = qs.get("companies", ["tencent,bytedance,xiaohongshu,alibaba,highflyer,zhipu,moonshot,minimax,kuaishou,lilith,kurogame"])[0]
         keyword = qs.get("keyword", [""])[0].strip()
         days_str = qs.get("days", ["0"])[0]
         try:
