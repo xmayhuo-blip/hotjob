@@ -106,7 +106,6 @@ def _build_companies():
     base = {
         "tencent":    {"name": "腾讯",     "color": "#00A4FF", "url": "https://careers.tencent.com/", "recruit_type": "社招"},
         "bytedance":  {"name": "字节跳动",  "color": "#2B2B2B", "url": "https://jobs.bytedance.com/", "recruit_type": "社招"},
-        "xiaohongshu":{"name": "小红书",    "color": "#FF2442", "url": "https://job.xiaohongshu.com/", "recruit_type": "社招"},
         "alibaba":    {"name": "阿里巴巴",  "color": "#FF6A00", "url": "https://talent.alibaba.com/", "recruit_type": "社招"},
         "highflyer":  {"name": "DeepSeek", "color": "#6C5CE7", "url": "https://app.mokahr.com/social-recruitment/high-flyer/140576", "recruit_type": "社招"},
         "zhipu":      {"name": "智谱AI",   "color": "#00B894", "url": "https://zhipu-ai.jobs.feishu.cn/", "recruit_type": "社招"},
@@ -323,7 +322,6 @@ URL_PATTERNS = [
     # (company_id, domain_keyword, [id_regex_patterns])
     ("tencent",     "careers.tencent.com",        [r"[?&]postId=([0-9]+)", r"[?&]id=([0-9]+)", r"/post/([0-9]+)\\.html", r"/post/([0-9]+)"]),
     ("bytedance",   "jobs.bytedance.com",         [r"/position/([0-9]+)/detail", r"/position/([0-9]+)"]),
-    ("xiaohongshu", "job.xiaohongshu.com",        [r"[?&]positionId=([0-9a-zA-Z]+)", r"/position/([0-9a-zA-Z]+)"]),
     ("alibaba",     "talent.alibaba.com",         [r"[?&]positionId=([0-9a-zA-Z]+)", r"/position/([0-9a-zA-Z]+)"]),
     ("kuaishou",    "zhaopin.kuaishou.cn",        [r"[?&]id=([0-9a-zA-Z-]+)", r"/job/([0-9a-zA-Z-]+)", r"#/job/([0-9a-zA-Z-]+)"]),
     ("highflyer",   "app.mokahr.com",             [r"#/job/([0-9a-zA-Z-]+)", r"/job/([0-9a-zA-Z-]+)"]),
@@ -350,8 +348,6 @@ def identify_company(url):
         return "bytedance"
     if "tencent" in url_lower:
         return "tencent"
-    if "xiaohongshu" in url_lower or "xhs" in url_lower:
-        return "xiaohongshu"
     if "alibaba" in url_lower or "ali" in url_lower:
         return "alibaba"
     if "kuaishou" in url_lower or "kwai" in url_lower:
@@ -443,27 +439,6 @@ def fetch_job_detail_fallback(cid, job_id, url):
                         return {"title": j.get("title", ""), "company": "字节跳动", "location": city,
                                 "dept": dept, "date": pt, "jd": jd, "url": url, "id": job_id}
                 if len(posts) < 30:
-                    break
-            return None
-
-        elif cid == "xiaohongshu":
-            # Page through Xiaohongshu API starting from page 1
-            api = "https://job.xiaohongshu.com/websiterecruit/position/pageQueryPosition"
-            for page in range(1, 6):
-                if time.time() - _t0 > _MAX_FALLBACK_SECS: break
-                body = json.dumps({"pageNum": page, "pageSize": 100, "keyword": ""}).encode()
-                req = _urllib.Request(api, data=body, headers={**ua, "Content-Type": "application/json"})
-                d = json.load(_urllib.urlopen(req, timeout=10, context=ctx))
-                positions = d.get("data", {}).get("list", [])
-                if not positions:
-                    break
-                for j in positions:
-                    if str(j.get("positionId", "")) == job_id:
-                        pt = _fmt_ts(j.get("publishTime", ""))
-                        return {"title": j.get("positionName", ""), "company": "小红书",
-                                "location": j.get("workplace", ""), "dept": j.get("jobType", ""),
-                                "date": pt, "jd": j.get("duty", ""), "url": url, "id": job_id}
-                if len(positions) < 100:
                     break
             return None
 
@@ -752,7 +727,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self._send(404, {"error": "not found"})
 
     def _handle_jobs(self, qs):
-        companies_param = qs.get("companies", ["tencent,bytedance,xiaohongshu,alibaba,highflyer,zhipu,moonshot,minimax,kuaishou,lilith,kurogame"])[0]
+        companies_param = qs.get("companies", ["tencent,bytedance,alibaba,highflyer,zhipu,moonshot,minimax,kuaishou,lilith,kurogame"])[0]
         keyword = qs.get("keyword", [""])[0].strip()
         days_str = qs.get("days", ["0"])[0]
         try:
