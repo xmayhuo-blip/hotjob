@@ -91,7 +91,7 @@ def _strip(s):
     return re.sub(r"\n\s*\n\s*\n+", "\n\n", t).strip()
 
 
-def fetch(keyword="", pages=10, page_size=100):
+def fetch(keyword="", pages=3, page_size=100):
     out = []
     for pg in range(1, pages + 1):
         params = {
@@ -140,5 +140,5 @@ def fetch(keyword="", pages=10, page_size=100):
 
 if __name__ == "__main__":
     kw = sys.argv[1] if len(sys.argv) > 1 else ""
-    pg = int(sys.argv[2]) if len(sys.argv) > 2 else 10
+    pg = int(sys.argv[2]) if len(sys.argv) > 2 else 3
     print(json.dumps(fetch(kw, pg), ensure_ascii=False))

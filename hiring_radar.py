@@ -57,7 +57,7 @@ LOCAL_PARSERS = {
     "ali-holding": {"command": "python3", "args": ["parsers/alibaba.py", "{keyword}", "10", "talent-holding.alibaba.com"]},
     "moonshot":  {"command": "python3", "args": ["parsers/moka.py", "moonshot", "148506", "月之暗面", "{keyword}"]},
     "minimax":   {"command": "python3", "args": ["parsers/feishu.py", "vrfi1sk8a0.jobs.feishu.cn", "MiniMax", "{keyword}"]},
-    "kuaishou":  {"command": "python3", "args": ["parsers/kuaishou.py", "{keyword}"]},
+    "kuaishou":  {"command": "python3", "args": ["parsers/kuaishou.py", "{keyword}"], "timeout_ms": 45000},
 }
 
 # Fix: use current Python interpreter (with pycryptodome) instead of system python3
