@@ -862,7 +862,7 @@ function renderTable(jobs) {
         <div class="cell">${rt && rt !== "未知" ? escapeHtml(rt) : "-"}</div>
         <div class="cell date">
           <span>${dateStr}</span>
-          <span class="${badgeClass}">${days === 0 ? '今天' : (days === undefined ? '未知' : days + '天前')}</span>
+          <span class="${badgeClass}">${days === 0 ? '今天' : (days === undefined || days === 9999 ? '未知' : days + '天前')}</span>
         </div>
         <div class="cell-arrow">›</div>
       </div>`;
@@ -935,8 +935,8 @@ function renderDetail() {
         <span><span class="dot" style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${compColor};margin-right:4px"></span>${escapeHtml(j._company_name || "")}</span>
         ${j.dept ? `<span>${escapeHtml(j.dept)}</span>` : ""}
         ${j.location ? `<span>📍 ${escapeHtml(j.location)}</span>` : ""}
-        <span>📅 ${dateStr} 发布</span>
-        <span>⏱ ${days === 0 ? '今天' : (days === undefined ? '未知' : days + '天前')}</span>
+        <span>📅 ${dateStr} ${j._company_id === 'tencent' || j._company_id === 'kuaishou' ? '更新' : '发布'}</span>
+        <span>⏱ ${days === 0 ? '今天' : (days === undefined || days === 9999 ? '未知' : days + '天前')}</span>
       </div>
     </div>
     <div class="detail-body">
@@ -1075,12 +1075,12 @@ async function lookupLink() {
         </div>
         <div class="result-grid">
           <div class="item">
-            <div class="label">真实发布时间</div>
+            <div class="label">${(data.company_id === 'tencent' || data.company_id === 'kuaishou') ? '更新时间' : '真实发布时间'}</div>
             <div class="value">${dateDisplay}</div>
           </div>
           <div class="item">
             <div class="label">距今天数</div>
-            <div class="value" style="color:${days === 0 ? 'var(--success)' : (days > 45 ? 'var(--danger)' : 'var(--text)')}">${days === 0 ? '今天' : (days === undefined ? '未知' : days + '天前')}</div>
+            <div class="value" style="color:${days === 0 ? 'var(--success)' : (days > 45 ? 'var(--danger)' : 'var(--text)')}">${days === 0 ? '今天' : (days === undefined || days === 9999 ? '未知' : days + '天前')}</div>
           </div>
         </div>
         <div class="result-advice">
