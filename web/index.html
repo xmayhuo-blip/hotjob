@@ -312,6 +312,13 @@ body {
 }
 .empty .icon { font-size: 40px; margin-bottom: 12px; }
 .empty .title { font-size: 14px; font-weight: 600; color: var(--text-2); margin-bottom: 4px; }
+.empty p { margin: 6px 0; line-height: 1.5; }
+.empty-action {
+  margin-top: 14px; padding: 8px 18px; border-radius: 8px;
+  border: 1px solid var(--primary); background: var(--primary);
+  color: #fff; font-size: 13px; cursor: pointer; font-weight: 600;
+}
+.empty-action:hover { background: var(--primary-hover); }
 
 /* ===== Link Lookup Tab ===== */
 .link-hero {
@@ -655,6 +662,33 @@ function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
 }
 
+function splitJdSections(jd) {
+  const text = String(jd || "").trim();
+  if (!text) return null;
+  const HEAD = [
+    {re: /^(岗位描述|职位描述|岗位说明|工作描述)\s*[:：]?/, title: "岗位描述"},
+    {re: /^(岗位职责|工作职责|职位职责|工作内容|主要工作)\s*[:：]?/, title: "岗位职责"},
+    {re: /^(岗位要求|任职要求|职位要求|任职资格|我们需要你|我们希望你|岗位资格)\s*[:：]?/, title: "岗位要求"},
+    {re: /^(我们提供|福利待遇|薪资福利|薪酬福利|加分项|补充说明|备注)\s*[:：]?/, title: "其他"},
+  ];
+  const lines = text.split(/\n+/).map(l => l.trim()).filter(Boolean);
+  const sections = [];
+  let cur = null;
+  for (const ln of lines) {
+    const h = HEAD.find(x => x.re.test(ln));
+    if (h) {
+      cur = {title: h.title, lines: []};
+      sections.push(cur);
+      const rest = ln.replace(h.re, "").trim();
+      if (rest) cur.lines.push(rest);
+    } else {
+      if (!cur) { cur = {title: "岗位描述", lines: []}; sections.push(cur); }
+      cur.lines.push(ln);
+    }
+  }
+  return sections.length ? sections : null;
+}
+
 // ===== Tabs =====
 document.querySelectorAll('.nav-tab').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -826,7 +860,18 @@ function renderTable(jobs) {
     `;
     return;
   }
-  area.innerHTML = `<div class="empty"><div class="icon">📋</div><div class="title">暂无数据</div></div>`;
+  area.innerHTML = `<div class="empty">
+      <div class="icon">📋</div>
+      <div class="title">没有找到匹配的岗位</div>
+      <p>部分公司（如 DeepSeek、智谱 AI）近期新帖较旧，默认仅显示 7 天内岗位时会为空。</p>
+      <p>建议把左上角「时间」筛选调长（如「近30天」或「全部时间」）；DeepSeek、智谱等需选「全部时间」才能看到。</p>
+      <button class="empty-action" id="extendDaysBtn">查看「全部时间」的岗位</button>
+    </div>`;
+    document.getElementById('extendDaysBtn')?.addEventListener('click', () => {
+      state.days = 0;
+      document.getElementById('daysSelect').value = "0";
+      state.retryCount = 0; fetchData();
+    });
     return;
   }
   const total = jobs.length;
@@ -935,7 +980,7 @@ function renderDetail() {
         <span><span class="dot" style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${compColor};margin-right:4px"></span>${escapeHtml(j._company_name || "")}</span>
         ${j.dept ? `<span>${escapeHtml(j.dept)}</span>` : ""}
         ${j.location ? `<span>📍 ${escapeHtml(j.location)}</span>` : ""}
-        <span>📅 ${dateStr} ${j._company_id === 'tencent' || j._company_id === 'kuaishou' ? '更新' : '发布'}</span>
+        <span>📅 ${dateStr} 发布</span>
         <span>⏱ ${days === 0 ? '今天' : (days === undefined || days === 9999 ? '未知' : days + '天前')}</span>
       </div>
     </div>
@@ -956,19 +1001,16 @@ function renderDetail() {
             }
             if (html) return html;
           }
-          // Fallback: try splitting combined JD
+          // Fallback: robust header-based splitting of combined JD
           const jd = j.description || j.jd || j.detail || '';
           if (jd && jd.trim().length > 10) {
-            const parts = String(jd).split(/\n\n/);
-            if (parts.length >= 2 && parts[0].trim().length > 5 && parts[1].trim().length > 5) {
-              const dutyLines = parts[0].split(/\n+/).filter(l => l.trim());
-              const reqLines = parts[1].split(/\n+/).filter(l => l.trim());
-              return '<h4>岗位职责</h4>' + dutyLines.map(l => `<p>${escapeHtml(l.trim())}</p>`).join('')
-                   + '<h4>岗位要求</h4>' + reqLines.map(l => `<p>${escapeHtml(l.trim())}</p>`).join('');
+            const sections = splitJdSections(jd);
+            if (sections) {
+              return sections.map(s =>
+                '<h4>' + escapeHtml(s.title) + '</h4>' +
+                s.lines.map(l => `<p>${escapeHtml(l)}</p>`).join('')
+              ).join('');
             }
-            // Single section JD
-            const lines = String(jd).split(/\n+/).filter(l => l.trim());
-            return '<h4>岗位描述</h4>' + lines.map(l => `<p>${escapeHtml(l.trim())}</p>`).join('');
           }
           return '<p class="placeholder">该岗位未提供详细描述，建议前往官网查看完整信息。</p>';
         })()
@@ -988,6 +1030,11 @@ function renderDetail() {
 // ===== Event Listeners =====
 document.getElementById('companySelect').addEventListener('change', e => {
   state.company = e.target.value;
+  state.city = ""; state.recruitType = ""; state.jobFunction = ""; state.experience = "";
+  document.getElementById('citySelect').value = "";
+  document.getElementById('recruitTypeSelect').value = "";
+  document.getElementById('functionSelect').value = "";
+  document.getElementById('expSelect').value = "";
   state.retryCount = 0; fetchData();
 });
 
@@ -1075,7 +1122,7 @@ async function lookupLink() {
         </div>
         <div class="result-grid">
           <div class="item">
-            <div class="label">${(data.company_id === 'tencent' || data.company_id === 'kuaishou') ? '更新时间' : '真实发布时间'}</div>
+            <div class="label">真实发布时间</div>
             <div class="value">${dateDisplay}</div>
           </div>
           <div class="item">

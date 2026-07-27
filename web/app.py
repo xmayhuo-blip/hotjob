@@ -178,7 +178,7 @@ def fetch_company(company_id):
         env["HIRING_RADAR_INSECURE"] = "1"
         result = subprocess.run(
             [PYTHON_BIN, HR_SCRIPT, "--local", company_id, "--json", "--limit", "500"],
-            capture_output=True, text=True, timeout=45,
+            capture_output=True, text=True, timeout=90,
             cwd=PROJECT_DIR, env=env
         )
         if result.returncode == 0:
