@@ -1,1 +1,1 @@
-web: cd web && python app.py
+web: bash start.sh
