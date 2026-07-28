@@ -1,0 +1,35 @@
+name: test
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: pip install pycryptodome
+      - name: Unit tests
+        run: python3 tests/test_utils.py
+      - name: E2E check (syntax only)
+        run: python3 -c "compile(open('tests/test_e2e.py').read(), 'test_e2e.py', 'exec')"
+      - name: Data sanity (syntax only)
+        run: python3 -c "compile(open('tests/test_sanity.py').read(), 'test_sanity.py', 'exec')"
+      - name: Parser loader syntax
+        run: python3 -c "compile(open('parsers/loader.py').read(), 'loader.py', 'exec')"
+      - name: App syntax
+        run: python3 -c "compile(open('web/app.py').read(), 'app.py', 'exec')"
+      - name: Parser syntax check
+        run: python3 -c "
+import py_compile, sys, os
+for f in ['parsers/tencent.py','parsers/bytedance.py','parsers/alibaba.py','parsers/feishu.py','parsers/moka.py','parsers/kuaishou.py']:
+    try:
+        compile(open(f).read(), f, 'exec')
+        print(f'OK: {f}')
+    except SyntaxError as e:
+        print(f'SYNTAX ERROR: {f}: {e}')
+        sys.exit(1)
+"

@@ -45,6 +45,8 @@ python web/app.py
 # 打开 http://localhost:8787
 ```
 
+> 完整的原始审计 / QA / 评估记录存放在项目中 `[INTERNAL]` 标记的文件中，仅供历史追溯。
+>
 ## License
 
-MIT
+MIT. 详见 [LICENSE](LICENSE)。
