@@ -9,3 +9,5 @@ vega-go-*
 *.docx
 web/debug.py
 web/favicon-preview.png
+*.db
+__pycache__/

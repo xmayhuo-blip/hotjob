@@ -5,11 +5,18 @@ hotjob — Web Server
 """
 
 import http.server
+import importlib.util
 import json
 import os
 import ssl as _ssl
 import subprocess
 import sys
+import os
+# Ensure project root is on sys.path for parsers package
+_APP_DIR = os.path.dirname(os.path.abspath(__file__))
+_PROJ_DIR = os.path.dirname(_APP_DIR)
+if _PROJ_DIR not in sys.path:
+    sys.path.insert(0, _PROJ_DIR)
 import threading
 import time
 import urllib.request as _urllib
@@ -17,12 +24,96 @@ from urllib.parse import urlparse, parse_qs
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 import re
+from parsers import loader as prs_loader
 
 PYTHON_BIN = sys.executable
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_DIR = os.path.dirname(BASE_DIR)
-HR_SCRIPT = os.path.join(PROJECT_DIR, "hiring_radar.py")
 PORT = int(os.environ.get("PORT", "8787"))
+
+# ===== Startup barrier =====
+# HTTP server blocks until initial prewarm completes
+_startup_ready = threading.Event()
+
+# ===== Page view stats =====",
+STATS_DB = "/tmp/hotjob_pageviews.db"
+_CACHE_PATH = "/tmp/hotjob_cache.json"
+
+# Minimum realistic job thresholds — must be defined BEFORE _load_cache()
+# so that poisoned cache data (e.g., 1 job for Alibaba due to old dedup bug)
+# is rejected on load, not silently served to users.
+MIN_JOBS_THRESHOLD = {
+    "tencent": 10, "bytedance": 10, "alibaba": 10, "highflyer": 1, "zhipu": 1,
+    "moonshot": 1, "minimax": 1, "kuaishou": 5, "lilith": 1, "kurogame": 1,
+}
+
+def _save_cache():
+    """Serialize _cache to disk for warm restart."""
+    import json
+    with _cache_lock:
+        data = {k: v for k, v in _cache.items() if v.get("data")}
+    try:
+        with open(_CACHE_PATH, "w") as f:
+            json.dump({"cache": data, "ts": time.time()}, f, ensure_ascii=False)
+    except Exception as e:
+        sys.stderr.write(f"[cache] save failed: {e}\n")
+
+def _load_cache():
+    """Load cached data from disk into _cache, but ONLY if data passes
+    MIN_JOBS_THRESHOLD validation. Poisoned cache data (e.g., from old
+    dedup bugs, SSL failures, API changes) is silently rejected."""
+    import json, os
+    if not os.path.exists(_CACHE_PATH):
+        return
+    try:
+        with open(_CACHE_PATH) as f:
+            blob = json.load(f)
+    except Exception as e:
+        sys.stderr.write(f"[cache] load failed: {e}\n")
+        return
+    cached = blob.get("cache", {})
+    saved_ts = blob.get("ts", 0)
+    now = time.time()
+    loaded = 0
+    rejected = 0
+    with _cache_lock:
+        for cid, entry in cached.items():
+            if isinstance(entry, dict) and "data" in entry:
+                jobs = entry["data"]
+                min_ok = MIN_JOBS_THRESHOLD.get(cid, 1)
+                # Reject poisoned cache: data below threshold or empty
+                if len(jobs) < min_ok:
+                    sys.stderr.write(
+                        f"[cache] REJECTED {cid}: only {len(jobs)} jobs "
+                        f"(min={min_ok}) — poisoned data, skipping\n")
+                    rejected += 1
+                    continue
+                age = now - saved_ts
+                _cache[cid] = {
+                    "time": now - age,
+                    "data": jobs,
+                    "failed": False,
+                }
+                loaded += 1
+    sys.stderr.write(
+        f"[cache] loaded {loaded} companies from disk "
+        f"(age {int(now - saved_ts)}s, rejected {rejected} poisoned)\n")
+
+def _get_stats():
+    """Lazy-import and return the stats module."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("_s", os.path.join(BASE_DIR, "stats.py"))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+_stats_mod = _get_stats()
+
+# Cache storage (defined early so _load_cache can use it)
+_cache = {}
+_cache_lock = threading.Lock()
+
+# Load disk cache for instant warm restart
+_load_cache()
 
 # ===== Simple per-IP rate limiter =====
 # Limits: 30 req/min per IP (enough for normal browsing, blocks abuse)
@@ -44,179 +135,104 @@ def _rate_limit_ok(client_ip):
         hits.append(now)
         _rate_map[client_ip] = hits
         return True
-# ===== Company seed loader: reads parsers/companies.seed =====
-_SEED_COLORS = [
-    "#00A4FF", "#FF2442", "#FF6A00", "#6C5CE7", "#00B894", "#E84393",
-    "#0984E3", "#E17055", "#2D3436", "#FDA7DF", "#6AB04C", "#F0932B",
-    "#A29BFE", "#55EFC4", "#FF7675", "#74B9FF", "#E056A0", "#FDCB6E",
-    "#636E72", "#D980FA", "#32FF7E", "#F8B500", "#00CEC9", "#D63031",
-]
-
-def _load_seed_companies():
-    """Parse companies.seed into COMPANIES-compatible dict for feishu & moka types.
-
-    Returns dict: {company_id: {name, color, url, recruit_type}}
-    Skips beisen (iTalent SPA -- needs Playwright) and selfbuilt.
-    """
-    seed_path = os.path.join(PROJECT_DIR, "parsers", "companies.seed")
-    companies = {}
-    if not os.path.exists(seed_path):
-        return companies
-
-    with open(seed_path, encoding="utf-8") as f:
-        lines = f.readlines()
-
-    color_idx = 0
-    for ln in lines:
-        ln = ln.strip()
-        if not ln or ln.startswith("#"):
-            continue
-        parts = [x.strip() for x in ln.split("|")]
-        if len(parts) < 4:
-            continue
-        key, typ, name = parts[0].lower(), parts[1].lower(), parts[2]
-        arg1, arg2 = (parts[3] if len(parts) > 3 else ""), (parts[4] if len(parts) > 4 else "")
-
-        if typ not in ("feishu", "moka"):
-            continue
-        if not arg1:
-            continue
-
-        color = _SEED_COLORS[color_idx % len(_SEED_COLORS)]
-        color_idx += 1
-
-        url = ""
-        if typ == "feishu":
-            url = f"https://{arg1}/"
-        elif typ == "moka":
-            url = f"https://app.mokahr.com/social-recruitment/{arg1}/{arg2}" if arg2 else f"https://app.mokahr.com/apply/{arg1}"
-
-        companies[key] = {
-            "name": name,
-            "color": color,
-            "url": url,
-            "recruit_type": "社招",
-        }
-
-    return companies
-
-
 def _build_companies():
-    """Build the company registry. Hardcoded companies + seed-loaded feishu/moka."""
-    base = {
-        "tencent":    {"name": "腾讯",     "color": "#00A4FF", "url": "https://careers.tencent.com/", "recruit_type": "社招"},
-        "bytedance":  {"name": "字节跳动",  "color": "#2B2B2B", "url": "https://jobs.bytedance.com/", "recruit_type": "社招"},
-        "alibaba":    {"name": "阿里巴巴",  "color": "#FF6A00", "url": "https://talent.alibaba.com/", "recruit_type": "社招"},
-        "highflyer":  {"name": "DeepSeek", "color": "#6C5CE7", "url": "https://app.mokahr.com/social-recruitment/high-flyer/140576", "recruit_type": "社招"},
-        "zhipu":      {"name": "智谱AI",   "color": "#00B894", "url": "https://zhipu-ai.jobs.feishu.cn/", "recruit_type": "社招"},
-        "moonshot":   {"name": "月之暗面",  "color": "#E84393", "url": "https://app.mokahr.com/apply/moonshot/148506"},
-        "minimax":    {"name": "MiniMax",  "color": "#0984E3", "url": "https://www.minimaxi.com/careers"},
-        "kuaishou":   {"name": "快手",     "color": "#E17055", "url": "https://zhaopin.kuaishou.cn/", "recruit_type": "社招"},
-        "lilith":     {"name": "莉莉丝",   "color": "#9B59B6", "url": "https://lilithgames.jobs.feishu.cn/", "recruit_type": "社招"},
-        "kurogame":   {"name": "库洛游戏", "color": "#F39C12", "url": "https://kurogame.jobs.feishu.cn/", "recruit_type": "社招"},
+    return {
+        "tencent":    {"name": "腾讯",     "color": "#00A4FF", "url": "https://careers.tencent.com/", "recruit_type": "社招", "max_count": 600},
+        "bytedance":  {"name": "字节跳动",  "color": "#2B2B2B", "url": "https://jobs.bytedance.com/", "recruit_type": "社招", "max_count": 120},
+        "alibaba":    {"name": "阿里巴巴",  "color": "#FF6A00", "url": "https://talent.alibaba.com/", "recruit_type": "社招", "max_count": 500},
+        "highflyer":  {"name": "DeepSeek", "color": "#6C5CE7", "url": "https://app.mokahr.com/social-recruitment/high-flyer/140576", "recruit_type": "社招", "max_count": 500},
+        "zhipu":      {"name": "智谱AI",   "color": "#00B894", "url": "https://zhipu-ai.jobs.feishu.cn/", "recruit_type": "社招", "max_count": 400},
+        "moonshot":   {"name": "月之暗面",  "color": "#E84393", "url": "https://app.mokahr.com/apply/moonshot/148506", "max_count": 500},
+        "minimax":    {"name": "MiniMax",  "color": "#0984E3", "url": "https://www.minimaxi.com/careers", "max_count": 400},
+        "kuaishou":   {"name": "快手",     "color": "#E17055", "url": "https://zhaopin.kuaishou.cn/", "recruit_type": "社招", "max_count": 300},
+        "lilith":     {"name": "莉莉丝",   "color": "#9B59B6", "url": "https://lilithgames.jobs.feishu.cn/", "recruit_type": "社招", "max_count": 400},
+        "kurogame":   {"name": "库洛游戏", "color": "#F39C12", "url": "https://kurogame.jobs.feishu.cn/", "recruit_type": "社招", "max_count": 400},
     }
-    return base
-
 
 COMPANIES = _build_companies()
 
-PREWARM_LIMIT = 30      # max companies to prewarm / load by default
+PREWARM_LIMIT = 10      # max companies to prewarm / load by default
 REFRESH_INTERVAL = 3600  # seconds between full data refreshes (1 hour)
 _last_refresh = 0        # timestamp of last completed refresh cycle
 
-# Companies without explicit recruit_type fall back to the `type` field from parser data
-# (feishu.py returns "社招"/"校招" via recruit_type.name; moka.py returns "全职"/"兼职")
-
-_cache = {}
-_cache_lock = threading.Lock()
-_inflight = {}          # company_id -> threading.Event, for request dedup
-_inflight_lock = threading.Lock()
-_fetch_semaphore = threading.Semaphore(3)  # max 3 concurrent subprocess calls
 CACHE_TTL = 600         # 10 min — reduces API call frequency by 50% vs 5 min
 STALE_TTL = 3600        # 1 hour — serve stale data on fetch failure
 FAIL_CACHE_TTL = 300    # 5 min — cache failed fetches so they don't retry infinitely
+_inflight = {}
+_inflight_lock = threading.Lock()
 
 
+def fetch_company(company_id, force_refresh=False):
+    """Fetch via parsers/loader direct import with cache + in-flight dedup.
 
-def fetch_company(company_id):
-    """Fetch company jobs with in-flight dedup + stale cache fallback.
-
-    If a fetch for this company is already in progress, wait for it
-    instead of launching a duplicate subprocess (prevents API ban).
-    On fetch failure, return stale cache if available.
+    Args:
+        company_id: company identifier
+        force_refresh: if True, skip cache check and always fetch fresh data.
+                       Used by periodic_refresh_loop to ensure real re-fetch.
     """
     cached = False
 
-    # 1. Check fresh cache
-    with _cache_lock:
-        if company_id in _cache:
-            entry = _cache[company_id]
-            age = time.time() - entry["time"]
-            if age < CACHE_TTL:
-                return company_id, entry["data"], True
+    # 1. Check fresh cache (skip if force_refresh)
+    if not force_refresh:
+        with _cache_lock:
+            if company_id in _cache:
+                entry = _cache[company_id]
+                age = time.time() - entry["time"]
+                if age < CACHE_TTL:
+                    return company_id, entry["data"], True
 
-    # 2. In-flight dedup: if another thread is already fetching this company, wait for it
-    with _inflight_lock:
-        event = _inflight.get(company_id)
-        if event:
-            event.wait(timeout=45)  # wait for the other fetch to finish
-            # After waiting, check cache again
-            with _cache_lock:
-                if company_id in _cache:
-                    return company_id, _cache[company_id]["data"], True
-            # Other fetch failed and no cache — return empty
-            return company_id, [], False
+    # 2. In-flight dedup (skip during force_refresh)
+    if not force_refresh:
+        with _inflight_lock:
+            event = _inflight.get(company_id)
+            if event:
+                event.wait(timeout=45)
+                with _cache_lock:
+                    if company_id in _cache:
+                        return company_id, _cache[company_id]["data"], True
+                return company_id, [], False
+            event = threading.Event()
+            _inflight[company_id] = event
 
-        # Register ourselves as the in-flight fetcher
-        event = threading.Event()
-        _inflight[company_id] = event
-
-    # 3. We are the designated fetcher — do the actual work
-    _fetch_semaphore.acquire()
+    # 3. Fetch via direct import (no subprocess)
     try:
-        env = os.environ.copy()
-        env["HIRING_RADAR_INSECURE"] = "1"
-        result = subprocess.run(
-            [PYTHON_BIN, HR_SCRIPT, "--local", company_id, "--json", "--limit", "500"],
-            capture_output=True, text=True, timeout=90,
-            cwd=PROJECT_DIR, env=env
-        )
-        if result.returncode == 0:
-            data = json.loads(result.stdout)
-            jobs = data.get("jobs", [])
-            with _cache_lock:
-                _cache[company_id] = {"time": time.time(), "data": jobs}
-            return company_id, jobs, cached
-        else:
-            sys.stderr.write(f"[{company_id}] stderr: {result.stderr[:500]}\n")
-            # Fallback: serve stale cache if available
+        jobs = prs_loader.fetch_company(company_id)
+        min_ok = MIN_JOBS_THRESHOLD.get(company_id, 1)
+        # Guard: reject suspiciously low data (INCLUDING 0 jobs)
+        if len(jobs) < min_ok:
+            sys.stderr.write(
+                f"[{company_id}] SUSPICIOUS: only {len(jobs)} jobs (min={min_ok})\n")
             with _cache_lock:
                 if company_id in _cache:
                     entry = _cache[company_id]
-                    if time.time() - entry["time"] < STALE_TTL:
-                        sys.stderr.write(f"[{company_id}] serving stale cache (age {int(time.time()-entry['time'])}s)\n")
-                        return company_id, entry["data"], True
-                # Cache failure for FAIL_CACHE_TTL to prevent infinite retry
-                _cache[company_id] = {"time": time.time(), "data": [], "failed": True}
-            return company_id, [], cached
+                    stale_jobs = entry.get("data", [])
+                    # Only keep stale cache if IT is also good data
+                    if len(stale_jobs) >= min_ok and time.time() - entry["time"] < STALE_TTL:
+                        return company_id, stale_jobs, True
+                    else:
+                        sys.stderr.write(
+                            f"[{company_id}] stale cache also bad "
+                            f"({len(stale_jobs)} jobs), not serving it\n")
+                # Cache suspicious data with failed=True (expires via FAIL_CACHE_TTL)
+                _cache[company_id] = {"time": time.time(), "data": jobs, "failed": True}
+            return company_id, jobs, cached
+        with _cache_lock:
+            _cache[company_id] = {"time": time.time(), "data": jobs}
+        return company_id, jobs, cached
     except Exception as e:
-        sys.stderr.write(f"[{company_id}] error: {e}\n")
-        # Fallback: serve stale cache if available
+        sys.stderr.write(f"[{company_id}] FETCH FAILED: {e}, using stale cache\n")
         with _cache_lock:
             if company_id in _cache:
                 entry = _cache[company_id]
                 if time.time() - entry["time"] < STALE_TTL:
-                    sys.stderr.write(f"[{company_id}] serving stale cache after error (age {int(time.time()-entry['time'])}s)\n")
                     return company_id, entry["data"], True
-            # Cache failure for FAIL_CACHE_TTL to prevent infinite retry
             _cache[company_id] = {"time": time.time(), "data": [], "failed": True}
         return company_id, [], cached
     finally:
-        # Always release the in-flight lock so future requests can proceed
-        _fetch_semaphore.release()
-        with _inflight_lock:
-            _inflight.pop(company_id, None)
-        event.set()
+        if not force_refresh:
+            with _inflight_lock:
+                _inflight.pop(company_id, None)
+            event.set()
 
 def parse_date(date_str):
     if not date_str or date_str == "未知":
@@ -638,6 +654,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         qs = parse_qs(parsed.query)
 
         if path == "/" or path == "/index.html":
+            _stats_mod.record_view(path)
             html_path = os.path.join(BASE_DIR, "index.html")
             if os.path.exists(html_path):
                 with open(html_path, "r", encoding="utf-8") as f:
@@ -656,6 +673,10 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
         if path == "/api/health":
             self._send(200, {"status": "ok", "time": datetime.now().isoformat()})
+            return
+        
+        if path == "/api/stats":
+            self._send(200, _stats_mod.get_stats())
             return
 
         if path == "/api/health/parsers":
@@ -788,17 +809,17 @@ class Handler(http.server.BaseHTTPRequestHandler):
         seen_urls = set()
         for cid in company_ids:
             jobs = results.get(cid, [])
-            company_stats[cid] = {
-                "name": COMPANIES[cid]["name"],
-                "color": COMPANIES[cid]["color"],
-                "count": len(jobs),
-                "url": COMPANIES[cid]["url"],
-            }
+            _dedup_count = 0
+            cinfo = COMPANIES[cid]
+            company_stats[cid] = {"name": cinfo["name"], "color": cinfo["color"],
+                                   "count": 0, "url": cinfo["url"],
+                                   "max_count": cinfo.get("max_count", 0)}
             for j in jobs:
-                # Deduplicate by URL (or company+id if no URL)
-                dedup_key = j.get("url", "") or f"{cid}:{j.get('id', '')}"
+                # Deduplicate by company+id (URL is unreliable: Alibaba gives same URL to all jobs)
+                dedup_key = f"{cid}:{j.get('id', '')}"
                 if dedup_key in seen_urls:
                     continue
+                _dedup_count += 1
                 seen_urls.add(dedup_key)
                 j["_company_id"] = cid
                 j["_company_color"] = COMPANIES[cid]["color"]
@@ -832,6 +853,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
                     j["_exp_min"] = 0
                     j["_exp_label"] = "应届"
                 all_jobs.append(j)
+            company_stats[cid]["count"] = _dedup_count
+            company_stats[cid]["limit_reached"] = _dedup_count >= company_stats[cid].get("max_count", 0) > 0
 
         if keyword:
             kw = keyword.lower()
@@ -890,7 +913,7 @@ def periodic_refresh_loop():
 
         failed = []
         with ThreadPoolExecutor(max_workers=3) as pool:
-            futures = {pool.submit(fetch_company, cid): cid for cid in company_list}
+            futures = {pool.submit(fetch_company, cid, True): cid for cid in company_list}
             for fut in as_completed(futures):
                 cid = futures[fut]
                 try:
@@ -911,7 +934,7 @@ def periodic_refresh_loop():
                     if cid in _cache and _cache[cid].get("failed"):
                         del _cache[cid]
             with ThreadPoolExecutor(max_workers=3) as pool:
-                futures = {pool.submit(fetch_company, cid): cid for cid in failed}
+                futures = {pool.submit(fetch_company, cid, True): cid for cid in failed}
                 still_failed = []
                 for fut in as_completed(futures):
                     cid = futures[fut]
@@ -929,6 +952,7 @@ def periodic_refresh_loop():
             still_failed = []
 
         _last_refresh = time.time()
+        _save_cache()
         if still_failed:
             sys.stderr.write(f"[refresh] cycle complete: {done}/{len(company_list)} ok, {len(still_failed)} failed (will retry in {REFRESH_INTERVAL}s)\n")
         else:
@@ -936,22 +960,67 @@ def periodic_refresh_loop():
 
         if first_run:
             first_run = False
+            _startup_ready.set()
+            sys.stderr.write("[refresh] initial prewarm complete, server ready\n")
 
         time.sleep(REFRESH_INTERVAL)
 
 
+def _kill_zombie_servers():
+    """Kill any process already listening on our port before we start.
+    This prevents the #1 cause of 'fix doesn't work': old server processes
+    serving stale code/data while the user thinks they're hitting the new one."""
+    import subprocess
+    try:
+        result = subprocess.run(
+            ["lsof", "-ti", f":{PORT}"],
+            capture_output=True, text=True, timeout=5
+        )
+        pids = [p.strip() for p in result.stdout.strip().split("\n") if p.strip()]
+        if pids:
+            sys.stderr.write(f"[startup] killing {len(pids)} zombie process(es) on port {PORT}: {pids}\n")
+            for pid in pids:
+                try:
+                    os.kill(int(pid), 9)
+                except Exception:
+                    pass
+            time.sleep(1)
+    except Exception as e:
+        sys.stderr.write(f"[startup] zombie check skipped: {e}\n")
+
+
 def main():
+    # Kill any old server on the same port FIRST
+    _kill_zombie_servers()
+
+    # Wait for initial prewarm before accepting connections
+    t = threading.Thread(target=periodic_refresh_loop, daemon=True)
+    t.start()
+    sys.stderr.write("[startup] waiting for initial data prewarm...\n")
+    _startup_ready.wait()
+
+    # Post-prewarm validation: verify all companies have realistic data
+    bad = []
+    with _cache_lock:
+        for cid in COMPANIES:
+            if cid in _cache:
+                count = len(_cache[cid].get("data", []))
+                min_ok = MIN_JOBS_THRESHOLD.get(cid, 1)
+                if count < min_ok:
+                    bad.append(f"{cid}: {count} jobs (min={min_ok})")
+    if bad:
+        sys.stderr.write(f"[startup] WARNING: data validation failed for: {'; '.join(bad)}\n")
+        sys.stderr.write("[startup] server will start but some companies may show stale/empty data\n")
+    else:
+        sys.stderr.write("[startup] data validation passed: all companies have realistic job counts\n")
+
     server = http.server.ThreadingHTTPServer(("0.0.0.0", PORT), Handler)
     print(f"hotjob running on http://localhost:{PORT}")
-    print(f"  Python: {PYTHON_BIN}")
-    print(f"  Engine: {HR_SCRIPT}")
     print(f"  Companies: {', '.join(COMPANIES.keys())}")
     print(f"  Cache TTL: {CACHE_TTL}s | Stale TTL: {STALE_TTL}s")
 
     # Periodic data refresh in background (startup + every REFRESH_INTERVAL)
-    t = threading.Thread(target=periodic_refresh_loop, daemon=True)
-    t.start()
-    print(f"  Background refresh every {REFRESH_INTERVAL}s...")
+    print(f"  Background refresh every {REFRESH_INTERVAL}s")
 
     try:
         server.serve_forever()
