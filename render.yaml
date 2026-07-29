@@ -6,7 +6,7 @@ services:
     runtime: python
     plan: free
     buildCommand: pip install -r requirements.txt
-    startCommand: cd web && python app.py
+    startCommand: python web/app.py
     envVars:
       - key: PYTHON_VERSION
         value: "3.12.11"

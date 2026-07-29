@@ -8,3 +8,4 @@ COPY . /app/
 
 EXPOSE 8787
 CMD ["python", "web/app.py"]
+# Note: all configs now use "python web/app.py" (app.py handles sys.path)
