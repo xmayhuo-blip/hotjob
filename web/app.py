@@ -201,12 +201,12 @@ def _classify_category(dept, title):
     if dept:
         for cat, patterns in _DEPT_CAT:
             for p in patterns:
-                if p.search(dept):
+                if re.search(p, dept):
                     return cat
     if title:
         for cat, patterns in _TITLE_CAT:
             for p in patterns:
-                if p.search(title):
+                if re.search(p, title):
                     return cat
     return "其他"
 
@@ -900,6 +900,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 elif rt in ("校招", "实习"):
                     j["_exp_min"] = 0
                     j["_exp_label"] = "应届"
+                j["_category"] = _classify_category(j.get("dept", ""), j.get("title", ""))
                 all_jobs.append(j)
             company_stats[cid]["count"] = _dedup_count
             company_stats[cid]["limit_reached"] = _dedup_count >= company_stats[cid].get("max_count", 0) > 0
