@@ -140,12 +140,12 @@ body {
   color: var(--primary); font-weight: 700; font-size: 15px;
 }
 .table-header {
-  display: grid; grid-template-columns: minmax(0, 2fr) 110px 90px 110px 40px;
+  display: grid; grid-template-columns: minmax(0, 2fr) 110px 90px 110px 40px; align-items: center;
   padding: 12px 20px; background: #FAFBFC; border-bottom: 1px solid var(--border);
   font-size: 12px; color: var(--text-3); font-weight: 600;
 }
 .job-row {
-  display: grid; grid-template-columns: minmax(0, 2fr) 110px 90px 110px 40px;
+  display: grid; grid-template-columns: minmax(0, 2fr) 110px 90px 110px 40px; align-items: center;
   padding: 16px 20px; border-bottom: 1px solid var(--border);
   cursor: pointer; transition: background 0.12s; align-items: center;
 }
@@ -405,12 +405,22 @@ body {
   .filter-bar .clear-link { position: absolute; top: 8px; right: 12px; font-size: 12px; color: var(--text-3); cursor: pointer; }
   .filter-bar .clear-link:hover { color: var(--primary); }
   .table-header { display: none; }
-  .job-row { display: grid; grid-template-columns: 1fr auto; gap: 6px; padding: 10px 16px; align-items: center; }
-  .job-row .cell { display: none; }
-  .job-row .cell.date { display: flex; }
-  .job-info .desc { display: none; }
-  .job-info .meta .dot { width: 5px; height: 5px; }
-  .cell-arrow { display: none; }
+  .job-row { display: flex; flex-direction: column; gap: 4px; padding: 10px 16px; cursor: pointer; }
+  .jr-title { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .jr-title .title { font-size: 14px; font-weight: 600; color: var(--text); line-height: 1.4; flex: 1; min-width: 0; }
+  .jr-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .jr-meta .company { font-size: 12px; color: var(--text-2); display: flex; align-items: center; gap: 4px; flex: 1; min-width: 0; }
+  .jr-meta .company .dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+  .jr-meta .jr-days-label { font-size: 11px; color: var(--text-3); white-space: nowrap; display: none; }
+  .jr-desc { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .jr-desc .desc { font-size: 12px; color: var(--text-3); line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; flex: 1; }
+  .jr-desc .desc-placeholder { font-size: 12px; color: var(--text-3); font-style: italic; flex: 1; }
+  .jr-desc .jr-arrow { font-size: 16px; color: var(--text-3); flex-shrink: 0; }
+  .jr-desktop-date, .jr-desktop-type { display: none; }
+  .jr-days-label { display: none; }
+  .rt-badge { display: inline-block; padding: 1px 5px; border-radius: 3px; font-size: 10px; font-weight: 600; background: var(--primary-light); color: var(--primary); }
+  .rt-badge.campus { background: #FFF3E0; color: #E67E22; }
+  .jr-row1 .days-badge { flex-shrink: 0; }
   .jobs-table-area { max-height: 340px; overflow-y: auto; -webkit-overflow-scrolling: touch; border-bottom: none; }
   .jobs-table-area::-webkit-scrollbar { width: 3px; }
   .jobs-table-area::-webkit-scrollbar-thumb { background: #D0D8E8; border-radius: 2px; }
@@ -476,6 +486,21 @@ body {
 }
 .stat-mini .num { font-size: 20px; font-weight: 700; color: var(--primary); line-height: 1; }
 .stat-mini .label { font-size: 11px; color: var(--text-3); white-space: nowrap; }
+.job-row { cursor: pointer; transition: background 0.12s; }
+.job-row:hover { background: #FAFBFC; }
+.job-row.active { background: var(--primary-light); }
+@media (min-width: 769px) {
+  .jr-title { display: contents; }
+  .jr-title .title { grid-column: 1; }
+  .jr-title .days-badge { grid-column: 4; justify-self: end; }
+  .jr-meta { display: contents; }
+  .jr-meta .company { grid-column: 1; }
+  .jr-meta .jr-days-label { display: none; }
+  .jr-desc { display: none; }
+  .jr-desktop-date { display: block; grid-column: 4; font-size: 13px; color: var(--text-2); }
+  .jr-desktop-type { display: block; grid-column: 3; font-size: 13px; color: var(--text-2); }
+  .jr-arrow { display: none; }
+}
 </style>
 </head>
 <body>
@@ -871,31 +896,27 @@ function renderTable(jobs) {
     let badgeClass = "days-badge";
     if (days === undefined || days > 30) badgeClass += " old";
     else if (days >= 7) badgeClass += " warn";
-    const dateStr = j.date ? String(j.date).slice(0, 10) : "未知";
     const rt = j._recruit_type || "";
     const rtHtml = rt && rt !== "未知" ? `<span class="rt-badge${rt === '校招' ? ' campus' : ''}">${rt}</span>` : "";
     const compColor = j._company_color || "#999";
-    const desc = (j.description || j.jd || "").substring(0, 80);
+    const desc = (j.description || j.jd || "").substring(0, 72);
+    const locHtml = j.location && j.location !== "-" ? ` · ${escapeHtml(j.location)}` : "";
     return `
       <div class="job-row ${state.selectedJob === j ? 'active' : ''}" data-id="${escapeHtml(j.id || j.post_id || '')}">
-        <div class="job-info">
-          <div class="title-row">
-            <span class="title">${escapeHtml(j.title || "未知岗位")}</span>
-            ${rtHtml}
-          </div>
-          <div class="meta">
-            <span class="company"><span class="dot" style="background:${compColor}"></span>${escapeHtml(j._company_name || "")}</span>
-            ${j.dept ? `<span>${escapeHtml(j.dept)}</span>` : ""}
-          </div>
-          ${desc ? `<div class="desc">${escapeHtml(desc)}...</div>` : ""}
-        </div>
-        <div class="cell">${escapeHtml(j.location || "-")}</div>
-        <div class="cell">${rt && rt !== "未知" ? escapeHtml(rt) : "-"}</div>
-        <div class="cell date">
-          <span>${dateStr}</span>
+        <div class="jr-title">
+          <span class="title">${escapeHtml(j.title || "未知岗位")}</span>
           <span class="${badgeClass}">${days === 0 ? '今天' : (days === undefined || days === 9999 ? '未知' : days + '天前')}</span>
         </div>
-        <div class="cell-arrow">›</div>
+        <div class="jr-meta">
+          <span class="company"><span class="dot" style="background:${compColor}"></span>${escapeHtml(j._company_name || "")}${locHtml}</span>
+          <span class="jr-days-label">${days === 0 ? '今天' : (days === undefined || days === 9999 ? '' : days + '天前')}</span>
+        </div>
+        <div class="jr-desc${desc ? '' : ' empty'}">
+          ${desc ? `<span class="desc">${escapeHtml(desc)}...</span>` : '<span class="desc-placeholder">点击查看详情</span>'}
+          <span class="jr-arrow">›</span>
+        </div>
+        <div class="jr-desktop-date">${j.date ? String(j.date).slice(0, 10) : ''}</div>
+        <div class="jr-desktop-type">${rt && rt !== "未知" ? escapeHtml(rt) : ""}</div>
       </div>`;
   }).join("");
 
