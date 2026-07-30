@@ -889,6 +889,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 j["_recruit_type"] = rt
                 dt = parse_date(j.get("date", ""))
                 j["_days_ago"] = days_ago(dt)
+                if dt:
+                    j["date"] = dt.strftime("%Y-%m-%d")
                 exp = extract_experience(j.get("requirement", ""), j.get("jd", ""))
                 j["_exp_min"] = exp["_exp_min"]
                 j["_exp_label"] = exp["_exp_label"]
