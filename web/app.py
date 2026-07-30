@@ -162,6 +162,54 @@ _inflight = {}
 _inflight_lock = threading.Lock()
 
 
+# ===== 职类归并映射 =====
+_DEPT_CAT = [
+    ("产品经理", [r'产品']),
+    ("技术-开发", [r'后端', r'前端', r'客户端', r'研发', r'开发', r'工程', r'全栈', r'ios', r'android', r'服务端', r'server', r'技术类', r'技术-']),
+    ("技术-算法", [r'算法', r'算法类', r'nlp', r'推荐', r'搜索', r'广告', r'cv', r'大模型', r'llm']),
+    ("技术-其他", [r'测试', r'qa', r'运维', r'devops', r'sre', r'安全', r'数据', r'基础设施']),
+    ("设计", [r'设计', r'ui', r'ux', r'视觉', r'交互', r'创意']),
+    ("美术", [r'美术', r'美术类', r'3d', r'ta', r'原画', r'模型', r'特效']),
+    ("策划", [r'策划']),
+    ("运营", [r'运营']),
+    ("市场营销", [r'市场', r'营销', r'bd', r'品牌', r'公关', r'媒介', r'商务']),
+    ("职能", [r'人力', r'hr', r'行政', r'财务', r'法务', r'战略', r'投资']),
+    ("销售", [r'销售']),
+    ("项目管理", [r'项目']),
+    ("音视频", [r'音视频', r'音频', r'视频', r'编码']),
+]
+
+_TITLE_CAT = [
+    ("产品经理", [r'产品']),
+    ("技术-算法", [r'算法', r'ai', r'ml', r'nlp', r'cv', r'大模型', r'llm', r'推荐', r'搜索']),
+    ("技术-开发", [r'前端', r'后端', r'开发', r'工程师', r'架构', r'go', r'java', r'python', r'c\+\+', r'全栈', r'ios', r'android', r'客户端', r'服务端']),
+    ("设计", [r'设计', r'ui', r'ux', r'视觉']),
+    ("美术", [r'美术', r'原画', r'3d', r'模型']),
+    ("策划", [r'策划']),
+    ("运营", [r'运营']),
+    ("市场营销", [r'市场', r'营销', r'bd', r'ua']),
+    ("技术-其他", [r'测试', r'qa', r'运维', r'安全']),
+    ("项目管理", [r'项目']),
+    ("音视频", [r'音视频', r'音频', r'视频']),
+    ("职能", [r'人力', r'hr', r'行政', r'财务']),
+    ("销售", [r'销售']),
+]
+
+def _classify_category(dept, title):
+    dept = (dept or "").strip().lower()
+    title = (title or "").strip().lower()
+    if dept:
+        for cat, patterns in _DEPT_CAT:
+            for p in patterns:
+                if p.search(dept):
+                    return cat
+    if title:
+        for cat, patterns in _TITLE_CAT:
+            for p in patterns:
+                if p.search(title):
+                    return cat
+    return "其他"
+
 def fetch_company(company_id, force_refresh=False):
     """Fetch via parsers/loader direct import with cache + in-flight dedup.
 

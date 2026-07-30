@@ -501,6 +501,7 @@ body {
   .jr-desktop-type { display: block; grid-column: 3; font-size: 13px; color: var(--text-2); }
   .jr-arrow { display: none; }
 }
+/* ===== More filters collapsible (mobile) ===== */
 </style>
 </head>
 <body>
@@ -550,21 +551,18 @@ body {
         <option value="14">近14天</option>
         <option value="30">近30天</option>
       </select>
-    </div>
-    <div class="filter-row-grid">
       <select class="filter-select" id="citySelect">
         <option value="">全部城市</option>
       </select>
-
-    </div>
-    <div class="filter-row-grid">
       <select class="filter-select" id="recruitTypeSelect">
         <option value="">全部类型</option>
         <option value="社招">社招</option>
         <option value="校招">校招</option>
         <option value="实习">实习</option>
       </select>
-
+      <select class="filter-select" id="categorySelect">
+        <option value="">全部职类</option>
+      </select>
     </div>
   </div>
 
@@ -628,6 +626,7 @@ const state = {
   keyword: "",
   city: "",
   recruitType: "",
+  category: "",
   jobFunction: "",
   
   days: 7,
@@ -868,11 +867,32 @@ function getFilteredJobs() {
   if (state.recruitType) {
     filtered = filtered.filter(j => (j._recruit_type || "未知") === state.recruitType);
   }
+  if (state.category) {
+    filtered = filtered.filter(j => (j._category || "") === state.category);
+  }
 
   
 
 // ===== Table =====
+function populateCategories(jobs) {
+  const cats = new Set();
+  for (const j of jobs) { if (j._category) cats.add(j._category); }
+  const sel = document.getElementById('categorySelect');
+  if (!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">全部职类</option>';
+  for (const c of ['产品经理','技术-开发','技术-算法','技术-其他','设计','美术','策划','运营','市场营销','职能','销售','项目管理','音视频','其他']) {
+    if (cats.has(c)) {
+      const opt = document.createElement('option');
+      opt.value = c; opt.textContent = c;
+      sel.appendChild(opt);
+    }
+  }
+  if (cur && cats.has(cur)) sel.value = cur;
+}
+
 function renderTable(jobs) {
+  populateCategories(jobs);
   const area = document.getElementById('jobsTableArea');
   if (!jobs || jobs.length === 0) {
     if (!state.jobs.length && !state.loading) {
@@ -1080,9 +1100,10 @@ function copyJobUrl(url, btn) {
 // ===== Event Listeners =====
 document.getElementById('companySelect').addEventListener('change', e => {
   state.company = e.target.value;
-  state.city = ""; state.recruitType = "";
+  state.city = ""; state.recruitType = ""; state.category = "";
   document.getElementById('citySelect').value = "";
   document.getElementById('recruitTypeSelect').value = "";
+  document.getElementById('categorySelect').value = "";
   state.retryCount = 0; fetchData();
 });
 
@@ -1102,6 +1123,12 @@ document.getElementById('citySelect').addEventListener('change', e => {
   renderTable(getFilteredJobs());
 });
 
+document.getElementById('categorySelect').addEventListener('change', e => {
+  state.category = e.target.value;
+  state.page = 1;
+  renderTable(getFilteredJobs());
+});
+
 document.getElementById('recruitTypeSelect').addEventListener('change', e => {
   state.recruitType = e.target.value;
   state.page = 1;
@@ -1113,10 +1140,11 @@ document.getElementById('recruitTypeSelect').addEventListener('change', e => {
 
 
 document.getElementById('clearFilters').addEventListener('click', () => {
-  state.keyword = ""; state.city = ""; state.recruitType = ""; state.days = 7; state.company = "";
+  state.keyword = ""; state.city = ""; state.recruitType = ""; state.category = ""; state.category = ""; state.days = 7; state.company = "";
   document.getElementById('keywordInput').value = "";
   document.getElementById('citySelect').value = "";
   document.getElementById('recruitTypeSelect').value = "";
+  document.getElementById('categorySelect').value = "";
   document.getElementById('daysSelect').value = "7";
   document.getElementById('companySelect').value = "";
   state.retryCount = 0; fetchData();
