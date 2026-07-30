@@ -101,15 +101,6 @@ body {
 }
 .filter-select:hover { border-color: var(--border-2); color: var(--text); }
 .filter-select:focus { border-color: var(--primary); background: var(--card); box-shadow: 0 0 0 2px var(--primary-light); }
-.clear-link {
-  font-size: 12px; color: var(--text-3); cursor: pointer; white-space: nowrap; margin-left: auto;
-}
-.clear-link:hover { color: var(--primary); }
-
-/* ===== Content Split ===== */
-.content-split {
-  display: grid; grid-template-columns: 1fr 360px; gap: 16px; align-items: start;
-}
 
 /* ===== Jobs Table ===== */
 .jobs-table-area {
@@ -502,7 +493,7 @@ body {
 <section id="latestTab" class="tab-panel active">
 
 
-  <div class="filter-bar" id="filterBar">
+<div class="filter-bar" id="filterBar" style="position:relative">
     <div class="search-box">
       <span class="icon">🔍</span>
       <input type="text" id="keywordInput" placeholder="搜索公司、岗位或关键词…">
@@ -530,7 +521,7 @@ body {
       <option value="校招">校招</option>
       <option value="实习">实习</option>
     </select>
-    <span class="clear-link" id="clearFilters">清空筛选</span>
+    <button class="filter-select" id="clearFilters" style="background:var(--bg);cursor:pointer;color:var(--text-3);border-color:var(--border-2);padding:8px 12px;flex-shrink:0">清空筛选</button>
   </div>
 
   <div id="limitNotice" class="loading-banner" style="display:none;margin-bottom:12px;background:#E3F2FD;color:#1565C0;border-color:#90CAF9;"></div>
@@ -755,10 +746,12 @@ async function fetchData() {
     renderStats(data);
     renderTable(getFilteredJobs());
     const refreshTs = data.last_refresh || 0;
+    const tl = document.getElementById('trustLine') || document.getElementById('statCards');
     const ss = (data.stats || {});
     if (refreshTs) {
       const mins = Math.floor((Date.now()/1000 - refreshTs) / 60);
-      tl.innerHTML = `数据更新于 <span class="highlight">${mins <= 1 ? '刚刚' : mins + ' 分钟前'}</span> <span class="sep">·</span> 今日新增 <span class="highlight">${ss.today ?? '-'}</span> 个岗位`;
+      const _ti = document.getElementById('_trust_inline') || document.getElementById('trustLine');
+      if (_ti) _ti.innerHTML = `数据更新于 <span class="highlight">${mins <= 1 ? '刚刚' : mins + ' 分钟前'}</span> <span class="sep">·</span> 今日新增 <span class="highlight">${ss.today ?? '-'}</span> 个岗位`;
       // Ensure stat grid is visible
       const _sg = document.getElementById('statCards');
       if (_sg) { _sg.style.display = 'block';
@@ -768,7 +761,8 @@ async function fetchData() {
         document.getElementById('sc30Day').textContent = ss.d30 ?? '-';
       }
     } else {
-      tl.textContent = '数据获取中...';
+      const _ti = document.getElementById('_trust_inline') || document.getElementById('trustLine');
+      if (_ti) _ti.textContent = '数据获取中...';
     }
     // Keep updateTime for backward compat
     document.getElementById('updateTime').textContent = refreshTs ? `更新于 ${new Date(refreshTs * 1000).toLocaleTimeString('zh-CN')}` : '更新于 --:--';
