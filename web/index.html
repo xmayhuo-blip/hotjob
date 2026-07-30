@@ -870,8 +870,10 @@ function getFilteredJobs() {
   if (state.category) {
     filtered = filtered.filter(j => (j._category || "") === state.category);
   }
+  return filtered;
+}
 
-  
+ 
 
 // ===== Table =====
 function populateCategories(jobs) {
