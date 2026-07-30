@@ -465,7 +465,7 @@ body {
 /* ===== Mobile bottom sheet ===== */
 @media (max-width: 768px) {
   .trust-line { padding: 6px 16px; font-size: 11px; }
-  .jobs-table-area { max-height: none; }
+  .jobs-table-area { max-height: 340px; }
   .detail-panel.mobile-active {
     position: fixed; bottom: 0; left: 0; right: 0; top: auto;
     max-height: 75vh; z-index: 300; border-radius: 12px 12px 0 0;
@@ -516,7 +516,7 @@ body {
   </div>
 </header>
 <div class="trust-line" id="trustLine">数据获取中...</div>
-<div id="statGrid" style="display:none;grid-template-columns:1fr 1fr;gap:6px;padding:0 24px 8px;background:#FAFBFC;border-bottom:1px solid var(--border);">
+<div id="statGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:0 24px 8px;background:#FAFBFC;border-bottom:1px solid var(--border);">
   <div class="stat-mini"><span class="num" id="sgToday">-</span><span class="label">今日新增</span></div>
   <div class="stat-mini"><span class="num" id="sg3Day">-</span><span class="label">近3天</span></div>
   <div class="stat-mini"><span class="num" id="sg7Day">-</span><span class="label">近7天</span></div>
@@ -774,6 +774,16 @@ async function fetchData() {
     if (refreshTs) {
       const mins = Math.floor((Date.now()/1000 - refreshTs) / 60);
       tl.innerHTML = `数据更新于 <span class="highlight">${mins <= 1 ? '刚刚' : mins + ' 分钟前'}</span> <span class="sep">·</span> 今日新增 <span class="highlight">${ss.today ?? '-'}</span> 个岗位`;
+      // Ensure stat grid is visible
+      const _sg = document.getElementById('statGrid');
+      if (_sg) { _sg.style.display = 'grid';
+        if (document.getElementById('sgToday')) {
+          document.getElementById('sgToday').textContent = ss.today ?? '-';
+          document.getElementById('sg3Day').textContent = ss.d3 ?? '-';
+          document.getElementById('sg7Day').textContent = ss.d7 ?? '-';
+          document.getElementById('sg30Day').textContent = ss.d30 ?? '-';
+        }
+      }
     } else {
       tl.textContent = '数据获取中...';
     }
