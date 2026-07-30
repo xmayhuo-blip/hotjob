@@ -8,6 +8,10 @@ import os
 import random
 import threading
 import time as _time
+import os
+# SSL bypass for parser modules that check this at import time
+if os.environ.get("HIRING_RADAR_INSECURE") != "1":
+    os.environ["HIRING_RADAR_INSECURE"] = "1"
 
 # Safety: domain-level rate limiting prevents ATS IP bans
 _DOMAIN_SEM = {}
