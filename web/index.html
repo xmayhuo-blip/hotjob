@@ -123,6 +123,15 @@ body {
   background: var(--card); border-radius: var(--radius); border: 1px solid var(--border);
   box-shadow: var(--shadow); overflow: hidden;
 }
+@media (max-width: 768px) {
+  .jobs-table-area { position: relative; }
+  .jobs-table-area::after {
+    content: ''; position: sticky; bottom: 0; display: block;
+    height: 32px; margin-top: -32px;
+    background: linear-gradient(transparent, var(--card));
+    pointer-events: none;
+  }
+}
 .results-summary {
   padding: 10px 20px; border-bottom: 1px solid var(--border);
   font-size: 13px; color: var(--text-2); background: #FAFBFC;
@@ -389,15 +398,23 @@ body {
   .update-time { display: none; }
   .page { padding: 16px; }
 
-  .filter-row { flex-direction: column; align-items: stretch; }
-  .filter-row .search-box, .filter-row .filter-select, .filter-row .btn-clear { width: 100%; }
+  .filter-row .search-box { width: 100%; }
+  .filter-row-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .filter-row-grid .filter-select { width: 100%; }
+  .filter-bar { position: relative; padding-top: 32px; }
+  .filter-bar .clear-link { position: absolute; top: 8px; right: 12px; font-size: 12px; color: var(--text-3); cursor: pointer; }
+  .filter-bar .clear-link:hover { color: var(--primary); }
   .table-header { display: none; }
-  .job-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; padding: 10px 16px; align-items: center; }
+  .job-row { display: grid; grid-template-columns: 1fr auto; gap: 6px; padding: 10px 16px; align-items: center; }
   .job-row .cell { display: none; }
   .job-row .cell.date { display: flex; }
   .job-info .desc { display: none; }
   .job-info .meta .dot { width: 5px; height: 5px; }
   .cell-arrow { display: none; }
+  .jobs-table-area { max-height: 340px; overflow-y: auto; -webkit-overflow-scrolling: touch; border-bottom: none; }
+  .jobs-table-area::-webkit-scrollbar { width: 3px; }
+  .jobs-table-area::-webkit-scrollbar-thumb { background: #D0D8E8; border-radius: 2px; }
+  .pagination { display: none; }
   .link-hero h1 { font-size: 26px; }
   .result-grid { grid-template-columns: 1fr; }
   .result-grid .item:first-child { border-right: none; border-bottom: 1px solid var(--border); }
@@ -489,56 +506,64 @@ body {
 
 
   <div class="filter-bar">
-    <select class="filter-select" id="companySelect">
-      <option value="">全部公司</option>
-    </select>
-    <div class="search-box">
-      <span class="icon">🔍</span>
-      <input type="text" id="keywordInput" placeholder="搜索职位名称、团队或关键词">
+    <span class="clear-link" id="clearFilters">清空筛选</span>
+    <div class="filter-row">
+      <div class="search-box">
+        <span class="icon">🔍</span>
+        <input type="text" id="keywordInput" placeholder="搜索公司、职位、团队或关键词">
+      </div>
     </div>
-    <select class="filter-select" id="citySelect">
-      <option value="">全部城市</option>
-    </select>
-    <select class="filter-select" id="recruitTypeSelect">
-      <option value="">全部类型</option>
-      <option value="社招">社招</option>
-      <option value="校招">校招</option>
-      <option value="实习">实习</option>
-    </select>
-    <select class="filter-select" id="functionSelect">
-      <option value="">全部职类</option>
-      <option value="产品">产品</option>
-      <option value="运营">运营</option>
-      <option value="算法">算法/AI</option>
-      <option value="开发">开发/工程</option>
-      <option value="设计">设计</option>
-      <option value="数据">数据</option>
-      <option value="测试">测试/QA</option>
-      <option value="市场">市场/品牌</option>
-      <option value="销售">销售/商务</option>
-      <option value="人力">人力资源</option>
-      <option value="运维">运维/DevOps</option>
-      <option value="安全">安全</option>
-      <option value="项目">项目管理</option>
-      <option value="其他">其他</option>
-    </select>
-    <select class="filter-select" id="expSelect">
-      <option value="">经验不限</option>
-      <option value="0">应届</option>
-      <option value="1">1-3年</option>
-      <option value="3">3-5年</option>
-      <option value="5">5-10年</option>
-      <option value="10">10年+</option>
-    </select>
-    <select class="filter-select" id="daysSelect">
-      <option value="0">全部时间</option>
-      <option value="1">今日</option>
-      <option value="3">近3天</option>
-      <option value="7" selected>近7天</option>
-      <option value="14">近14天</option>
-      <option value="30">近30天</option>
-    </select>
-    <button class="btn-clear" id="clearFilters">清空筛选</button>
+    <div class="filter-row-grid">
+      <select class="filter-select" id="companySelect">
+        <option value="">全部公司</option>
+      </select>
+      <select class="filter-select" id="daysSelect">
+        <option value="0">全部时间</option>
+        <option value="1">今日</option>
+        <option value="3">近3天</option>
+        <option value="7" selected>近7天</option>
+        <option value="14">近14天</option>
+        <option value="30">近30天</option>
+      </select>
+    </div>
+    <div class="filter-row-grid">
+      <select class="filter-select" id="citySelect">
+        <option value="">全部城市</option>
+      </select>
+      <select class="filter-select" id="functionSelect">
+        <option value="">全部职类</option>
+        <option value="产品">产品</option>
+        <option value="运营">运营</option>
+        <option value="算法">算法/AI</option>
+        <option value="开发">开发/工程</option>
+        <option value="设计">设计</option>
+        <option value="数据">数据</option>
+        <option value="测试">测试/QA</option>
+        <option value="市场">市场/品牌</option>
+        <option value="销售">销售/商务</option>
+        <option value="人力">人力资源</option>
+        <option value="运维">运维/DevOps</option>
+        <option value="安全">安全</option>
+        <option value="项目">项目管理</option>
+        <option value="其他">其他</option>
+      </select>
+    </div>
+    <div class="filter-row-grid">
+      <select class="filter-select" id="recruitTypeSelect">
+        <option value="">全部类型</option>
+        <option value="社招">社招</option>
+        <option value="校招">校招</option>
+        <option value="实习">实习</option>
+      </select>
+      <select class="filter-select" id="expSelect">
+        <option value="">经验不限</option>
+        <option value="0">应届</option>
+        <option value="1">1-3年</option>
+        <option value="3">3-5年</option>
+        <option value="5">5-10年</option>
+        <option value="10">10年+</option>
+      </select>
+    </div>
   </div>
 
   <div id="limitNotice" class="loading-banner" style="display:none;margin-bottom:12px;background:#E3F2FD;color:#1565C0;border-color:#90CAF9;"></div>
