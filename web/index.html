@@ -530,23 +530,7 @@ body {
       <select class="filter-select" id="citySelect">
         <option value="">全部城市</option>
       </select>
-      <select class="filter-select" id="functionSelect">
-        <option value="">全部职类</option>
-        <option value="产品">产品</option>
-        <option value="运营">运营</option>
-        <option value="算法">算法/AI</option>
-        <option value="开发">开发/工程</option>
-        <option value="设计">设计</option>
-        <option value="数据">数据</option>
-        <option value="测试">测试/QA</option>
-        <option value="市场">市场/品牌</option>
-        <option value="销售">销售/商务</option>
-        <option value="人力">人力资源</option>
-        <option value="运维">运维/DevOps</option>
-        <option value="安全">安全</option>
-        <option value="项目">项目管理</option>
-        <option value="其他">其他</option>
-      </select>
+
     </div>
     <div class="filter-row-grid">
       <select class="filter-select" id="recruitTypeSelect">
@@ -555,14 +539,7 @@ body {
         <option value="校招">校招</option>
         <option value="实习">实习</option>
       </select>
-      <select class="filter-select" id="expSelect">
-        <option value="">经验不限</option>
-        <option value="0">应届</option>
-        <option value="1">1-3年</option>
-        <option value="3">3-5年</option>
-        <option value="5">5-10年</option>
-        <option value="10">10年+</option>
-      </select>
+
     </div>
   </div>
 
@@ -627,7 +604,7 @@ const state = {
   city: "",
   recruitType: "",
   jobFunction: "",
-  experience: "",
+  
   days: 7,
   jobs: [],
   allCities: [],
@@ -638,33 +615,9 @@ const state = {
   selectedJob: null,
 };
 
-const FUNC_RULES = [
-  {key:"算法",  patterns:[/算法/, /机器学习/, /深度学习/, /NLP/, /自然语言/, /CV/, /计算机视觉/, /AI/, /人工智能/, /大模型/, /LLM/, /推荐系统/, /搜索算法/]},
-  {key:"产品",  patterns:[/产品经理/, /产品总监/, /产品策划/, /产品运营/, /^产品/, /PM/, /Product Manager/]},
-  {key:"运营",  patterns:[/运营/, /新媒体/, /内容运营/, /用户运营/, /社群/, /增长/]},
-  {key:"开发",  patterns:[/开发/, /工程师/, /前端/, /后端/, /全栈/, /Java/, /Python/, /Go\b/, /C\+\+/, /iOS/, /Android/, /架构师/, /RD/, /研发/, /软件/]},
-  {key:"设计",  patterns:[/设计/, /UI/, /UX/, /视觉/, /交互/, /动效/, /创意/]},
-  {key:"数据",  patterns:[/数据分析/, /数据工程/, /数据挖掘/, /BI/, /数据科学/, /数据仓库/, /^数据/]},
-  {key:"测试",  patterns:[/测试/, /QA/, /质量保障/, /Quality/]},
-  {key:"市场",  patterns:[/市场/, /品牌/, /公关/, /Marketing/, /投放/, /广告/]},
-  {key:"销售",  patterns:[/销售/, /商务/, /BD/, /客户经理/, /Sales/, /渠道/]},
-  {key:"人力",  patterns:[/人力/, /HR/, /招聘/, /培训/, /组织发展/, /政委/]},
-  {key:"运维",  patterns:[/运维/, /SRE/, /DevOps/, /基础设施/, /平台工程/]},
-  {key:"安全",  patterns:[/安全/, /Security/, /风控/, /渗透/]},
-  {key:"项目",  patterns:[/项目管理/, /PMO/, /Project Manager/, /项目协调/]},
-  {key:"财务",  patterns:[/财务/, /会计/, /Finance/, /税务/]},
-];
 
-function classifyFunction(title, dept) {
-  const text = ((title || "") + " " + (dept || "")).trim();
-  if (!text) return "其他";
-  for (const rule of FUNC_RULES) {
-    for (const p of rule.patterns) {
-      if (p.test(text)) return rule.key;
-    }
-  }
-  return "其他";
-}
+
+
 
 function escapeHtml(s) {
   if (!s) return "";
@@ -880,19 +833,8 @@ function getFilteredJobs() {
   if (state.recruitType) {
     filtered = filtered.filter(j => (j._recruit_type || "未知") === state.recruitType);
   }
-  if (state.jobFunction) {
-    filtered = filtered.filter(j => classifyFunction(j.title, j.dept) === state.jobFunction);
-  }
-  if (state.experience) {
-    const expMin = parseInt(state.experience);
-    filtered = filtered.filter(j => {
-      if (j._exp_min === undefined || j._exp_min === null || j._exp_min === -1) return false;
-      return j._exp_min >= expMin;
-    });
-  }
-  filtered.sort((a, b) => (a._days_ago || 9999) - (b._days_ago || 9999));
-  return filtered;
-}
+
+  
 
 // ===== Table =====
 function renderTable(jobs) {
@@ -1107,11 +1049,9 @@ function copyJobUrl(url, btn) {
 // ===== Event Listeners =====
 document.getElementById('companySelect').addEventListener('change', e => {
   state.company = e.target.value;
-  state.city = ""; state.recruitType = ""; state.jobFunction = ""; state.experience = "";
+  state.city = ""; state.recruitType = "";
   document.getElementById('citySelect').value = "";
   document.getElementById('recruitTypeSelect').value = "";
-  document.getElementById('functionSelect').value = "";
-  document.getElementById('expSelect').value = "";
   state.retryCount = 0; fetchData();
 });
 
@@ -1137,24 +1077,15 @@ document.getElementById('recruitTypeSelect').addEventListener('change', e => {
   renderTable(getFilteredJobs());
 });
 
-document.getElementById('expSelect').addEventListener('change', e => {
-  state.experience = e.target.value;
-  state.page = 1;
-  renderTable(getFilteredJobs());
-});
 
-document.getElementById('functionSelect').addEventListener('change', e => {
-  state.jobFunction = e.target.value;
-  state.page = 1;
-  renderTable(getFilteredJobs());
-});
+
+
 
 document.getElementById('clearFilters').addEventListener('click', () => {
-  state.keyword = ""; state.city = ""; state.recruitType = ""; state.jobFunction = ""; state.experience = ""; state.days = 7; state.company = "";
+  state.keyword = ""; state.city = ""; state.recruitType = ""; state.days = 7; state.company = "";
   document.getElementById('keywordInput').value = "";
   document.getElementById('citySelect').value = "";
   document.getElementById('recruitTypeSelect').value = "";
-  document.getElementById('functionSelect').value = "";
   document.getElementById('daysSelect').value = "7";
   document.getElementById('companySelect').value = "";
   state.retryCount = 0; fetchData();
