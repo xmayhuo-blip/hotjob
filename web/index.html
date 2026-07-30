@@ -750,6 +750,23 @@ function debounce(fn, delay) {
 
 async function fetchData() {
   if (state.loading) return;
+  // Try localStorage cache for instant render
+  const _c = localStorage.getItem('hotjob_cache');
+  if (_c && !state._cached_shown) {
+    try {
+      const _p = JSON.parse(_c);
+      if (Date.now() - _p.ts < 600000 && _p.data && _p.data.jobs) {
+        state._cached_shown = true;
+        state.jobs = _p.data.jobs || [];
+        state.allCities = extractCities(state.jobs);
+        refreshCitySelect();
+        renderStats(_p.data);
+        renderTable(getFilteredJobs());
+        const _t = document.getElementById('trustLine');
+        if (_t) _t.textContent = '\u663e\u793a\u7f13\u5b58\u6570\u636e\uff0c\u540e\u53f0\u5237\u65b0\u4e2d...';
+      }
+    } catch(e) {}
+  }
   state.loading = true;
   state.page = 1; state.selectedJob = null; renderDetail();
   const area = document.getElementById('jobsTableArea');
@@ -767,6 +784,9 @@ async function fetchData() {
     state.jobs = data.jobs || [];
     state.allCities = extractCities(state.jobs);
     refreshCitySelect();
+    // Update localStorage cache
+    try { localStorage.setItem('hotjob_cache', JSON.stringify({ts: Date.now(), data})); } catch(e) {}
+    if (state._cached_shown && data.jobs && data.jobs.length > 0) state._cached_shown = false;
     renderStats(data);
     renderTable(getFilteredJobs());
     // Update trust line
