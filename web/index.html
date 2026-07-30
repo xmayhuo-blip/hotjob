@@ -74,62 +74,21 @@ body {
 .tab-panel.active { display: block; }
 
 /* ===== Hero ===== */
-.hero {
-  background: linear-gradient(135deg, #F8FAFF 0%, #F0F5FF 50%, #F8F5FF 100%);
-  border-radius: var(--radius); padding: 40px;
-  display: flex; align-items: center; justify-content: space-between; gap: 40px;
-  margin-bottom: 20px; border: 1px solid var(--border);
-}
-.hero-left { flex: 1; }
-.hero-tag {
-  display: inline-flex; align-items: center; gap: 6px;
-  color: var(--primary); font-size: 13px; font-weight: 600;
-  background: var(--primary-light); padding: 5px 12px; border-radius: 20px; margin-bottom: 16px;
-}
-.hero h1 {
-  font-size: 42px; font-weight: 700; line-height: 1.15; color: var(--text);
-  margin-bottom: 16px; letter-spacing: -0.5px;
-}
-.hero p {
-  font-size: 14px; color: var(--text-2); line-height: 1.7;
-  max-width: 420px;
-}
-.hero-right { flex-shrink: 0; }
-.stat-cards {
-  display: flex; gap: 12px;
-}
-.stat-card {
-  background: var(--card); border-radius: var(--radius); padding: 20px 24px;
-  min-width: 110px; text-align: center; box-shadow: var(--shadow);
-  border: 1px solid var(--border);
-}
-.stat-card .icon {
-  width: 32px; height: 32px; border-radius: 50%; margin: 0 auto 10px;
-  display: flex; align-items: center; justify-content: center;
-  background: var(--primary-light); color: var(--primary); font-size: 14px;
-}
-.stat-card .num {
-  font-size: 32px; font-weight: 700; color: var(--primary); line-height: 1;
-  display: block;
-}
-.stat-card .label {
-  font-size: 12px; color: var(--text-3); margin-top: 8px;
-}
-.stat-card .sub {
-  font-size: 11px; color: var(--text-3); margin-top: 4px;
-}
+.hero { display: none; }
 
 /* ===== Filter Bar ===== */
 .filter-bar {
   background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow);
-  padding: 14px 16px; margin-bottom: 16px; border: 1px solid var(--border);
-  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 12px 16px; margin-bottom: 16px; border: 1px solid var(--border);
 }
-.search-box {
-  flex: 1; min-width: 200px; position: relative;
+.filter-row {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+}
+.filter-row + .filter-row { margin-top: 8px; }
+.search-box { position: relative;
 }
 .search-box input {
-  width: 100%; padding: 9px 12px 9px 36px; border: 1px solid var(--border-2);
+  width: 100%; padding: 8px 12px 8px 32px; border: 1px solid var(--border-2);
   border-radius: var(--radius-sm); font-size: 13px; outline: none;
   background: var(--bg); color: var(--text); transition: all 0.15s;
 }
@@ -139,7 +98,7 @@ body {
   font-size: 14px; color: var(--text-3);
 }
 .filter-select {
-  padding: 9px 28px 9px 12px; border: 1px solid var(--border-2); border-radius: var(--radius-sm);
+  padding: 8px 26px 8px 10px; border: 1px solid var(--border-2); border-radius: var(--radius-sm);
   font-size: 13px; cursor: pointer; outline: none; background: var(--bg); color: var(--text-2);
   transition: all 0.15s; appearance: none; -webkit-appearance: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
@@ -422,21 +381,16 @@ body {
 @media (max-width: 1024px) {
   .content-split { grid-template-columns: 1fr; }
   .detail-panel { position: static; max-height: none; }
-  .hero { flex-direction: column; align-items: flex-start; }
-  .hero-right { width: 100%; }
-  .stat-cards { justify-content: flex-start; overflow-x: auto; }
+
 }
 @media (max-width: 768px) {
   .top-nav .nav-inner { padding: 0 16px; }
   .nav-tabs { position: static; transform: none; margin-left: auto; margin-right: 12px; }
   .update-time { display: none; }
   .page { padding: 16px; }
-  .hero { padding: 24px; }
-  .hero h1 { font-size: 28px; }
-  .stat-card { padding: 14px 16px; min-width: 80px; }
-  .stat-card .num { font-size: 24px; }
-  .filter-bar { flex-direction: column; align-items: stretch; }
-  .search-box, .filter-select, .btn-clear { width: 100%; }
+
+  .filter-row { flex-direction: column; align-items: stretch; }
+  .filter-row .search-box, .filter-row .filter-select, .filter-row .btn-clear { width: 100%; }
   .table-header, .job-row { grid-template-columns: 1fr; gap: 6px; }
   .results-summary {
   padding: 10px 20px; border-bottom: 1px solid var(--border);
@@ -516,42 +470,22 @@ body {
   </div>
 </header>
 <div class="trust-line" id="trustLine">数据获取中...</div>
+<div class="trust-line" id="compactStats" style="padding-top:0;font-size:12px;color:var(--text-3);display:none;gap:12px;flex-wrap:wrap;background:#FAFBFC;border-bottom:1px solid var(--border);padding:0 24px 6px;">
+  <span>今日 <strong id="csToday" style="color:var(--primary)">-</strong></span>
+  <span style="color:var(--border-2)">|</span>
+  <span>3天 <strong id="cs3Day" style="color:var(--primary)">-</strong></span>
+  <span style="color:var(--border-2)">|</span>
+  <span>7天 <strong id="cs7Day" style="color:var(--primary)">-</strong></span>
+  <span style="color:var(--border-2)">|</span>
+  <span>30天 <strong id="cs30Day" style="color:var(--primary)">-</strong></span>
+</div>
 <div class="detail-backdrop" id="detailBackdrop"></div>
 
 <main class="page">
 
 <!-- ===== Latest Jobs Tab ===== -->
 <section id="latestTab" class="tab-panel active">
-  <div class="hero">
-    <div class="hero-left">
-      <div class="hero-tag">社招 · 校招</div>
-      <h1>查询最新出炉的岗位</h1>
-    </div>
-    <div class="hero-right">
-      <div class="stat-cards">
-        <div class="stat-card">
-          <div class="icon">⚡</div>
-          <div class="num" id="statToday">-</div>
-          <div class="label">今日新增</div>
-        </div>
-        <div class="stat-card">
-          <div class="icon">◷</div>
-          <div class="num" id="stat3Day">-</div>
-          <div class="label">3天内</div>
-        </div>
-        <div class="stat-card">
-          <div class="icon">◎</div>
-          <div class="num" id="stat7Day">-</div>
-          <div class="label">7天内</div>
-        </div>
-        <div class="stat-card">
-          <div class="icon">☐</div>
-          <div class="num" id="stat30Day">-</div>
-          <div class="label">30天内</div>
-        </div>
-      </div>
-    </div>
-  </div>
+
 
   <div class="filter-bar">
     <select class="filter-select" id="companySelect">
@@ -879,10 +813,14 @@ async function fetchData() {
 
 function renderStats(data) {
   const s = (data.stats || {});
-  document.getElementById('statToday').textContent = s.today ?? '-';
-  document.getElementById('stat3Day').textContent = s.d3 ?? '-';
-  document.getElementById('stat7Day').textContent = s.d7 ?? '-';
-  document.getElementById('stat30Day').textContent = s.d30 ?? '-';
+  const cs = document.getElementById('compactStats');
+  if (cs && (s.today !== undefined || s.d3 !== undefined)) {
+    cs.style.display = 'flex';
+    document.getElementById('csToday').textContent = s.today ?? '-';
+    document.getElementById('cs3Day').textContent = s.d3 ?? '-';
+    document.getElementById('cs7Day').textContent = s.d7 ?? '-';
+    document.getElementById('cs30Day').textContent = s.d30 ?? '-';
+  }
   // Show limit notice when viewing a single company that hits its max
   const ln = document.getElementById('limitNotice');
   if (state.company && s.by_company && s.by_company[state.company]) {
