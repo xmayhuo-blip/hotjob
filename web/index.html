@@ -410,10 +410,10 @@ body {
   .jr-title .title { font-size: 14px; font-weight: 600; color: var(--text); line-height: 1.4; flex: 1; min-width: 0; text-align: left; }
   .jr-meta { display: flex; align-items: flex-start; justify-content: flex-start; gap: 6px; }
   .jr-meta .company { font-size: 12px; color: var(--text-2); display: flex; align-items: center; gap: 4px; min-width: 0; }
-  .jr-meta .company .dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+  .jr-meta .company { padding-left: 0; } .jr-meta .company .dot { display: none; }
   .jr-meta .jr-days-label { font-size: 11px; color: var(--text-3); white-space: nowrap; display: none; }
   .jr-desc { display: flex; align-items: flex-start; justify-content: flex-start; gap: 4px; }
-  .jr-desc .desc { font-size: 12px; color: var(--text-3); line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+  .jr-desc .desc { font-size: 12px; color: var(--text-3); line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; text-align: left; }
   .jr-desc .desc-placeholder { font-size: 12px; color: var(--text-3); font-style: italic; }
   .jr-desc .jr-arrow { font-size: 12px; color: var(--text-3); }
   .jr-desktop-date, .jr-desktop-type { display: none; }
@@ -940,7 +940,7 @@ function renderTable(jobs) {
           <span class="${badgeClass}">${days === 0 ? '今天' : (days === undefined || days === 9999 ? '未知' : days + '天前')}</span>
         </div>
         <div class="jr-meta">
-          <span class="company"><span class="dot" style="background:${compColor}"></span>${escapeHtml(j._company_name || "")}${locHtml}</span>
+          <span class="company" style="border-left: 3px solid ${compColor}; padding-left: 6px;">${escapeHtml(j._company_name || "")}${locHtml}</span>
           <span class="jr-days-label">${days === 0 ? '今天' : (days === undefined || days === 9999 ? '' : days + '天前')}</span>
         </div>
         <div class="jr-desc${desc ? '' : ' empty'}">
