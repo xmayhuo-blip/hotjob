@@ -787,6 +787,8 @@ async function fetchData() {
     // Update localStorage cache
     try { localStorage.setItem('hotjob_cache', JSON.stringify({ts: Date.now(), data})); } catch(e) {}
     if (state._cached_shown && data.jobs && data.jobs.length > 0) state._cached_shown = false;
+    // Reset retry counter on successful data load
+    if (data.jobs && data.jobs.length > 0) state._fetchRetries = 0;
     renderStats(data);
     renderTable(getFilteredJobs());
     // Update trust line
@@ -818,7 +820,7 @@ async function fetchData() {
     try { const d = data.companies && data.companies[c]; return (d && d.name) || c; } catch { return c; }
   }).filter(Boolean);
     if (failedNames.length > 0) {
-      state.retryCount = 0;  // reset retry count since these are permanent failures
+      state.retryCount = 0; state._fetchRetries = 0;  // reset retry count since these are permanent failures
       area.insertAdjacentHTML('afterbegin',
         `<div class="loading-banner" style="border-color:#ffe0e0;background:#fff5f5;color:#c0392b;">${failedNames.join('、')} 数据暂未更新</div>`);
     }
@@ -842,7 +844,8 @@ async function fetchData() {
   state.loading = false;
   
   // Auto-retry if no jobs yet and initial data might still be loading
-  if (!state.jobs.length && !state._retryTimer) {
+  if (!state.jobs.length && !state._retryTimer && (state._fetchRetries || 0) < 3) {
+    state._fetchRetries = (state._fetchRetries || 0) + 1;
     state._retryTimer = setTimeout(() => { state._retryTimer = null; fetchData(); }, 5000);
   }
 }
@@ -936,7 +939,7 @@ function renderTable(jobs) {
     document.getElementById('extendDaysBtn')?.addEventListener('click', () => {
       state.days = 0;
       document.getElementById('daysSelect').value = "0";
-      state.retryCount = 0; fetchData();
+      state.retryCount = 0; state._fetchRetries = 0; fetchData();
     });
     return;
   }
@@ -1130,17 +1133,17 @@ document.getElementById('companySelect').addEventListener('change', e => {
   document.getElementById('citySelect').value = "";
   document.getElementById('recruitTypeSelect').value = "";
   document.getElementById('categorySelect').value = "";
-  state.retryCount = 0; fetchData();
+  state.retryCount = 0; state._fetchRetries = 0; fetchData();
 });
 
 document.getElementById('keywordInput').addEventListener('input', debounce(e => {
   state.keyword = e.target.value;
-  state.retryCount = 0; fetchData();
+  state.retryCount = 0; state._fetchRetries = 0; fetchData();
 }, 500));
 
 document.getElementById('daysSelect').addEventListener('change', e => {
   state.days = parseInt(e.target.value);
-  state.retryCount = 0; fetchData();
+  state.retryCount = 0; state._fetchRetries = 0; fetchData();
 });
 
 document.getElementById('citySelect').addEventListener('change', e => {
@@ -1173,7 +1176,7 @@ document.getElementById('clearFilters').addEventListener('click', () => {
   document.getElementById('categorySelect').value = "";
   document.getElementById('daysSelect').value = "7";
   document.getElementById('companySelect').value = "";
-  state.retryCount = 0; fetchData();
+  state.retryCount = 0; state._fetchRetries = 0; fetchData();
 });
 
 // ===== Link Lookup =====
