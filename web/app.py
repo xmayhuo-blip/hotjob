@@ -160,6 +160,8 @@ STALE_TTL = 3600        # 1 hour — serve stale data on fetch failure
 FAIL_CACHE_TTL = 300    # 5 min — cache failed fetches so they don't retry infinitely
 _inflight = {}
 _inflight_lock = threading.Lock()
+_FAIL_COUNTER = {}
+_FAIL_LOCK = threading.Lock()
 
 
 # ===== 职类归并映射 =====
@@ -676,15 +678,21 @@ def _enrich_match(match, cid, url):
 
 class Handler(http.server.BaseHTTPRequestHandler):
     def _send(self, code, body, ct="application/json; charset=utf-8"):
+        import gzip as _gz
         if isinstance(body, str) and ct.startswith("text"):
             data = body.encode("utf-8")
         elif isinstance(body, (dict, list)):
             data = json.dumps(body, ensure_ascii=False).encode("utf-8")
         else:
             data = body if isinstance(body, bytes) else str(body).encode("utf-8")
+        use_gz = len(data) > 1024 and self.headers.get("Accept-Encoding", "").find("gzip") >= 0
+        if use_gz:
+            data = _gz.compress(data)
         self.send_response(code)
         self.send_header("Content-Type", ct)
         self.send_header("Content-Length", str(len(data)))
+        if use_gz:
+            self.send_header("Content-Encoding", "gzip")
         self.send_header("Access-Control-Allow-Origin", "*")
         self.end_headers()
         self.wfile.write(data)
@@ -719,6 +727,26 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self._handle_jobs(qs)
             return
 
+        if path.startswith("/api/job/"):
+            parts = path.split("/")
+            if len(parts) >= 5:
+                _dcid, _djobid = parts[3], "/".join(parts[4:])
+                _found = None
+                with _cache_lock:
+                    for _ecid in list(COMPANIES.keys()):
+                        _entries = _cache.get(_ecid, {}).get("data", [])
+                        for _ej in _entries:
+                            if str(_ej.get("id", "")) == _djobid and _ecid == _dcid:
+                                _found = _ej; break
+                        if _found: break
+                if _found:
+                    self._send(200, _found)
+                else:
+                    self._send(404, {"error": "job not found"})
+            else:
+                self._send(400, {"error": "invalid path"})
+            return
+        
         if path == "/api/health":
             self._send(200, {"status": "ok", "time": datetime.now().isoformat()})
             return
@@ -830,9 +858,15 @@ class Handler(http.server.BaseHTTPRequestHandler):
                         if age < FAIL_CACHE_TTL:
                             results[cid] = entry["data"]
                             errors[cid] = "fetch failed"
+                            with _FAIL_LOCK:
+                                _FAIL_COUNTER[cid] = _FAIL_COUNTER.get(cid, 0) + 1
+                                if _FAIL_COUNTER[cid] >= 3:
+                                    errors[cid] = "连续3次获取失败，已标记为故障"
                             continue
                         # Failure cache expired — retry
                     elif age < CACHE_TTL:
+                        with _FAIL_LOCK:
+                            _FAIL_COUNTER.pop(cid, None)
                         results[cid] = entry["data"]
                         continue
                     elif age < STALE_TTL:
@@ -924,9 +958,17 @@ class Handler(http.server.BaseHTTPRequestHandler):
             all_jobs = [j for j in all_jobs if j["_days_ago"] < days]
 
         all_jobs.sort(key=lambda x: x.get("_days_ago", 9999))
+        _truncated = len(all_jobs) > 800
+        if _truncated:
+            all_jobs = all_jobs[:800]
 
 
 
+        for _j in all_jobs:
+            _j.pop("jd", None)
+            _j.pop("description", None)
+            _j.pop("responsibility", None)
+            _j.pop("requirement", None)
         self._send(200, {
             "jobs": all_jobs,
             "total": len(all_jobs),
@@ -943,6 +985,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             "last_refresh": _last_refresh,
             "fetch_time": round(time.time() - t0, 1),
             "cached": all(f"{cid}" in _cache for cid in company_ids),
+            "truncated": _truncated,
         })
 
     def log_message(self, fmt, *args):
