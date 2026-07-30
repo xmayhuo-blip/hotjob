@@ -3,11 +3,60 @@
 
 对 10 家 MVP 公司使用 import-based 直调，对 seed 表扩展公司可作为后续 fallback。
 """
+
 import os
+import random
+import time as _time
+
+# Safety: domain-level rate limiting prevents ATS IP bans
+_DOMAIN_SEM = {}
+_DOMAIN_LOCK = threading.Lock()
+_LAST_REQUEST = {}  # domain -> timestamp
+
+def _rate_limit_domain(domain):
+    """Per-domain rate limiter: max 1 request per 3 seconds per domain.
+    Moka/Feishu host multiple companies under one domain."""
+    with _DOMAIN_LOCK:
+        now = _time.time()
+        last = _LAST_REQUEST.get(domain, 0)
+        wait = max(0, 3.0 - (now - last))
+        if wait > 0:
+            _time.sleep(wait)
+        _LAST_REQUEST[domain] = _time.time()
+
+def _get_domain(company_id):
+    """Map company_id to ATS domain for rate limiting."""
+    cfg = PARSER_CONFIG.get(company_id)
+    if not cfg: return None
+    modname = cfg[0]
+    if "feishu" in modname: return "feishu"
+    if "moka" in modname: return "moka"
+    if "tencent" in modname: return "tencent"
+    if "bytedance" in modname: return "bytedance"
+    if "alibaba" in modname: return "alibaba"
+    if "kuaishou" in modname: return "kuaishou"
+    return None
+
+# Rotate User-Agent across requests to reduce fingerprinting
+_UAS = [
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15",
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
+]
+_UA_LOCK = threading.Lock()
+_UA_INDEX = 0
+
+def _random_ua():
+    """Return a random User-Agent string."""
+    global _UA_INDEX
+    with _UA_LOCK:
+        ua = _UAS[_UA_INDEX % len(_UAS)]
+        _UA_INDEX += 1
+        return ua
+
 # Parser modules check this at import time to bypass SSL verification
-if os.environ.get("HIRING_RADAR_INSECURE") != "1":
-    os.environ["HIRING_RADAR_INSECURE"] = "1"
-import importlib
+
 import threading
 import sys
 
@@ -55,6 +104,15 @@ def fetch_company(company_id, keyword=""):
     cfg = PARSER_CONFIG.get(company_id)
     if not cfg:
         raise ValueError(f"[loader] 未知公司: {company_id}，可选: {list(PARSER_CONFIG.keys())}")
+
+    # Safety: rate limit per-domain before making the request
+    domain = _get_domain(company_id)
+    if domain:
+        _rate_limit_domain(domain)
+
+    # Randomize User-Agent before import (parser modules read it at module level)
+    # We set the env var so parser modules that check os.environ can use it
+    os.environ["HOTJOB_UA"] = _random_ua()
 
     modname, fn_name, base_args = cfg
     try:

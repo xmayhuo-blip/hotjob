@@ -1014,7 +1014,9 @@ def periodic_refresh_loop():
             _startup_ready.set()
             sys.stderr.write("[refresh] initial prewarm complete, server ready\n")
 
-        time.sleep(REFRESH_INTERVAL)
+        # Add jitter (0-300s) to avoid synchronized bursts across deployments
+        import random as _r
+        time.sleep(REFRESH_INTERVAL + _r.randint(0, 300))
 
 
 def _kill_zombie_servers():
