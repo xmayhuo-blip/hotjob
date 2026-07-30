@@ -451,6 +451,14 @@ body {
   .detail-panel:not(.mobile-active) { display: none; }
 }
 
+.stat-mini {
+  background: var(--card); border-radius: var(--radius-sm);
+  padding: 8px 12px; border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  height: 48px;
+}
+.stat-mini .num { font-size: 20px; font-weight: 700; color: var(--primary); line-height: 1; }
+.stat-mini .label { font-size: 11px; color: var(--text-3); white-space: nowrap; }
 </style>
 </head>
 <body>
@@ -466,14 +474,11 @@ body {
   </div>
 </header>
 <div class="trust-line" id="trustLine">数据获取中...</div>
-<div class="trust-line" id="compactStats" style="padding-top:0;font-size:12px;color:var(--text-3);display:none;gap:12px;flex-wrap:wrap;background:#FAFBFC;border-bottom:1px solid var(--border);padding:0 24px 6px;">
-  <span>今日 <strong id="csToday" style="color:var(--primary)">-</strong></span>
-  <span style="color:var(--border-2)">|</span>
-  <span>3天 <strong id="cs3Day" style="color:var(--primary)">-</strong></span>
-  <span style="color:var(--border-2)">|</span>
-  <span>7天 <strong id="cs7Day" style="color:var(--primary)">-</strong></span>
-  <span style="color:var(--border-2)">|</span>
-  <span>30天 <strong id="cs30Day" style="color:var(--primary)">-</strong></span>
+<div id="statGrid" style="display:none;grid-template-columns:1fr 1fr;gap:6px;padding:0 24px 8px;background:#FAFBFC;border-bottom:1px solid var(--border);">
+  <div class="stat-mini"><span class="num" id="sgToday">-</span><span class="label">今日新增</span></div>
+  <div class="stat-mini"><span class="num" id="sg3Day">-</span><span class="label">近3天</span></div>
+  <div class="stat-mini"><span class="num" id="sg7Day">-</span><span class="label">近7天</span></div>
+  <div class="stat-mini"><span class="num" id="sg30Day">-</span><span class="label">近30天</span></div>
 </div>
 <div class="detail-backdrop" id="detailBackdrop"></div>
 
@@ -809,13 +814,13 @@ async function fetchData() {
 
 function renderStats(data) {
   const s = (data.stats || {});
-  const cs = document.getElementById('compactStats');
+  const cs = document.getElementById('statGrid');
   if (cs && (s.today !== undefined || s.d3 !== undefined)) {
-    cs.style.display = 'flex';
-    document.getElementById('csToday').textContent = s.today ?? '-';
-    document.getElementById('cs3Day').textContent = s.d3 ?? '-';
-    document.getElementById('cs7Day').textContent = s.d7 ?? '-';
-    document.getElementById('cs30Day').textContent = s.d30 ?? '-';
+    cs.style.display = 'grid';
+    document.getElementById('sgToday').textContent = s.today ?? '-';
+    document.getElementById('sg3Day').textContent = s.d3 ?? '-';
+    document.getElementById('sg7Day').textContent = s.d7 ?? '-';
+    document.getElementById('sg30Day').textContent = s.d30 ?? '-';
   }
   // Show limit notice when viewing a single company that hits its max
   const ln = document.getElementById('limitNotice');
