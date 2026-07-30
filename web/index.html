@@ -405,7 +405,7 @@ body {
   .filter-bar .clear-link { position: absolute; top: 8px; right: 12px; font-size: 12px; color: var(--text-3); cursor: pointer; }
   .filter-bar .clear-link:hover { color: var(--primary); }
   .table-header { display: none; }
-  .job-row { display: flex; flex-direction: column; gap: 4px; padding: 10px 16px; cursor: pointer; }
+  .job-row { display: flex; flex-direction: column; gap: 4px; padding: 10px 16px; cursor: pointer; align-items: stretch; }
   .jr-title { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
   .jr-title .title { font-size: 14px; font-weight: 600; color: var(--text); line-height: 1.4; flex: 1; min-width: 0; text-align: left; }
   .jr-meta { display: flex; align-items: flex-start; justify-content: flex-start; gap: 6px; }
@@ -416,7 +416,7 @@ body {
   .jr-desc .desc { font-size: 12px; color: var(--text-3); line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; text-align: left; }
   .jr-desc .desc-placeholder { font-size: 12px; color: var(--text-3); font-style: italic; }
   .jr-desc .jr-arrow { font-size: 12px; color: var(--text-3); }
-  .jr-desktop-date, .jr-desktop-type { display: none; }
+  .jr-desktop-date, .jr-desktop-type, .jr-desktop-location { display: none; }
   .jr-days-label { display: none; }
   .rt-badge { display: inline-block; padding: 1px 5px; border-radius: 3px; font-size: 10px; font-weight: 600; background: var(--primary-light); color: var(--primary); }
   .rt-badge.campus { background: #FFF3E0; color: #E67E22; }
@@ -490,15 +490,18 @@ body {
 .job-row:hover { background: #FAFBFC; }
 .job-row.active { background: var(--primary-light); }
 @media (min-width: 769px) {
+  .job-row { grid-template-rows: auto auto; }
+  .table-header { grid-template-rows: auto auto; }
   .jr-title { display: contents; }
-  .jr-title .title { grid-column: 1; }
-  .jr-title .days-badge { grid-column: 4; justify-self: end; }
+  .jr-title .title { grid-column: 1; grid-row: 1; }
+  .jr-title .days-badge { grid-column: 4; grid-row: 1; justify-self: end; align-self: center; }
+  .jr-desktop-location { display: block; grid-column: 2; grid-row: 1; font-size: 13px; color: var(--text-2); align-self: center; }
   .jr-meta { display: contents; }
-  .jr-meta .company { grid-column: 1; }
+  .jr-meta .company { grid-column: 1; grid-row: 2; font-size: 12px; color: var(--text-2); border-left: none; padding-left: 0; }
   .jr-meta .jr-days-label { display: none; }
   .jr-desc { display: none; }
-  .jr-desktop-date { display: block; grid-column: 4; font-size: 13px; color: var(--text-2); }
-  .jr-desktop-type { display: block; grid-column: 3; font-size: 13px; color: var(--text-2); }
+  .jr-desktop-date { display: block; grid-column: 4; grid-row: 2; font-size: 13px; color: var(--text-2); align-self: center; }
+  .jr-desktop-type { display: block; grid-column: 3; grid-row: 1; font-size: 13px; color: var(--text-2); align-self: center; }
   .jr-arrow { display: none; }
 }
 /* ===== More filters collapsible (mobile) ===== */
@@ -940,7 +943,8 @@ function renderTable(jobs) {
           <span class="${badgeClass}">${days === 0 ? '今天' : (days === undefined || days === 9999 ? '未知' : days + '天前')}</span>
         </div>
         <div class="jr-meta">
-          <span class="company" style="border-left: 3px solid ${compColor}; padding-left: 6px;">${escapeHtml(j._company_name || "")}${locHtml}</span>
+          <span class="company" style="border-left: 3px solid ${compColor}; padding-left: 6px;">${escapeHtml(j._company_name || "")}</span>
+          <span class="jr-desktop-location">${j.location && j.location !== "-" ? escapeHtml(j.location) : ""}</span>
           <span class="jr-days-label">${days === 0 ? '今天' : (days === undefined || days === 9999 ? '' : days + '天前')}</span>
         </div>
         <div class="jr-desc${desc ? '' : ' empty'}">
