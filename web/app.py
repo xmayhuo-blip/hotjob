@@ -727,24 +727,35 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self._handle_jobs(qs)
             return
 
-        if path.startswith("/api/job/"):
-            parts = path.split("/")
-            if len(parts) >= 5:
-                _dcid, _djobid = parts[3], "/".join(parts[4:])
-                _found = None
+        if path == "/api/job-detail":
+            _dcid = qs.get("cid", [""])[0].strip()
+            _djobid = qs.get("id", [""])[0].strip()
+            _found = None
+            _company_ids = list(COMPANIES.keys())
+            if _dcid and _dcid in _company_ids:
                 with _cache_lock:
-                    for _ecid in list(COMPANIES.keys()):
-                        _entries = _cache.get(_ecid, {}).get("data", [])
-                        for _ej in _entries:
-                            if str(_ej.get("id", "")) == _djobid and _ecid == _dcid:
-                                _found = _ej; break
-                        if _found: break
-                if _found:
-                    self._send(200, _found)
-                else:
-                    self._send(404, {"error": "job not found"})
+                    entry = _cache.get(_dcid)
+                    if entry:
+                        for _ej in (entry.get("data") or []):
+                            if str(_ej.get("id", "")) == _djobid:
+                                _found = _ej
+                                break
+            if _found:
+                self._send(200, _found)
             else:
-                self._send(400, {"error": "invalid path"})
+                self._send(404, {"error": "job not found", "cid": _dcid, "jid": _djobid})
+            return
+        
+        if path == "/api/cache-debug":
+            debug = {}
+            with _cache_lock:
+                import copy
+                for cid in list(COMPANIES.keys()):
+                    entry = _cache.get(cid)
+                    if entry:
+                        data = entry.get("data", [])
+                        debug[cid] = {"age": round(time.time() - entry.get("time", 0), 1), "count": len(data), "failed": entry.get("failed", False), "has_jd": bool(data and bool(data[0].get("jd"))) if data else False, "sample_ids": [str(j.get("id","")) for j in data[:3]]}
+            self._send(200, {"cache": debug})
             return
         
         if path == "/api/health":
@@ -875,16 +886,15 @@ class Handler(http.server.BaseHTTPRequestHandler):
                         if cid not in _inflight:
                             threading.Thread(target=fetch_company, args=(cid,), daemon=True).start()
                         continue
-            # Not cached — check if fetch is in-flight
+            # Not cached or failed cache expired — serve empty, mark error
+            # (but don't add to loading, preventing infinite frontend retries)
+            results[cid] = []
+            errors[cid] = "no cached data"
             with _inflight_lock:
                 if cid in _inflight:
-                    # Fetch in progress — return empty for now
-                    results[cid] = []
-                    loading.append(cid)
+                    pass  # Don't add to loading, periodic refresh handles it
                 else:
-                    # Cold cache — no on-demand fetch; periodic refresh handles this
-                    results[cid] = []
-                    loading.append(cid)
+                    pass  # Don't add to loading
 
         all_jobs = []
         company_stats = {}
@@ -964,11 +974,6 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
 
 
-        for _j in all_jobs:
-            _j.pop("jd", None)
-            _j.pop("description", None)
-            _j.pop("responsibility", None)
-            _j.pop("requirement", None)
         self._send(200, {
             "jobs": all_jobs,
             "total": len(all_jobs),

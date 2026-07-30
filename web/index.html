@@ -1013,7 +1013,7 @@ function renderTable(jobs) {
 }
 
 // ===== Detail Panel =====
-async function renderDetail() {
+function renderDetail() {
   const panel = document.getElementById('detailPanel');
   let j = state.selectedJob;
   if (!j) {
@@ -1026,14 +1026,6 @@ async function renderDetail() {
         <div class="sub">岗位职责、任职要求和真实发布时间会在这里展示</div>
       </div>`;
     return;
-  }
-  // Fetch full details (JD stripped from list for perf)
-  if (!j.jd && !j.description && !j.responsibility && !j.requirement && j._company_id && j.id) {
-    try {
-      const _r = await fetch('/api/job/' + j._company_id + '/' + j.id);
-      const _full = await _r.json();
-      if (!_full.error) { state.selectedJob = _full; j = _full; }
-    } catch(_e) {}
   }
   const days = j._days_ago;
   const dateStr = j.date || "未知";
