@@ -120,6 +120,8 @@ def fetch(keyword="", pages=3, page_size=100):
             # 职位类别
             cat_code = j.get("positionCategoryCode", "") or ""
             cat_name = CATEGORY_MAP.get(cat_code, cat_code)
+            desc_raw = j.get("description", "") or ""
+            req_raw = j.get("requirement", "") or ""
             out.append({
                 "title": j.get("name", ""),
                 "company": "快手",
@@ -128,7 +130,9 @@ def fetch(keyword="", pages=3, page_size=100):
                 "type": "全职",
                 "date": date,
                 "comp": "",
-                "jd": _strip(j.get("description", "")),
+                "jd": "\n\n".join(x for x in [_strip(desc_raw), _strip(req_raw)] if x),
+                "responsibility": _strip(desc_raw),
+                "requirement": _strip(req_raw),
                 "url": f"{BASE_URL}/#/official/social/job-info/{jid}",
                 "id": jid,
             })
