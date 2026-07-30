@@ -11,23 +11,23 @@
 <link rel="icon" type="image/png" sizes="512x512" href="/favicon-512x512.png">
 <style>
 :root {
-  --primary: #4A90D9;
-  --primary-light: #E8F4FD;
-  --primary-hover: #3A7BC8;
-  --bg: #F5F7FA;
+  --primary: #F97316;
+  --primary-light: #FFF7ED;
+  --primary-hover: #EA580C;
+  --bg: #FAFAF9;
   --card: #FFFFFF;
-  --text: #1A1A1A;
-  --text-2: #555555;
-  --text-3: #888888;
-  --border: #EBEEF5;
-  --border-2: #E0E5EF;
-  --success: #34C759;
+  --text: #1C1917;
+  --text-2: #78716C;
+  --text-3: #A8A29E;
+  --border: #E7E5E4;
+  --border-2: #D6D3D1;
+  --success: #10B981;
   --warning: #FF9500;
   --danger: #FF3B30;
-  --radius: 12px;
-  --radius-sm: 8px;
-  --shadow: 0 1px 3px rgba(0,0,0,0.04), 0 6px 20px rgba(0,0,0,0.04);
-  --shadow-hover: 0 4px 12px rgba(0,0,0,0.08);
+  --radius: 10px;
+  --radius-sm: 6px;
+  --shadow: 0 1px 2px rgba(0,0,0,0.05);
+  --shadow-hover: 0 4px 12px rgba(0,0,0,0.06);
 }
 * { margin: 0; padding: 0; box-sizing: border-box; }
 html, body { height: 100%; }
@@ -64,9 +64,7 @@ body {
 }
 .nav-tab:hover { color: var(--text); background: var(--bg); }
 .nav-tab.active { color: var(--primary); background: var(--primary-light); }
-.update-time {
-  font-size: 12px; color: var(--text-3);
-}
+.nav-update { font-size: 12px; color: var(--text-3); }
 
 /* ===== Layout ===== */
 .page { max-width: 1280px; margin: 0 auto; padding: 24px; }
@@ -74,17 +72,14 @@ body {
 .tab-panel.active { display: block; }
 
 /* ===== Hero ===== */
-.hero { display: none; }
 
 /* ===== Filter Bar ===== */
 .filter-bar {
-  background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow);
+  background: var(--card); border-radius: var(--radius);
   padding: 12px 16px; margin-bottom: 16px; border: 1px solid var(--border);
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
 }
-.filter-row {
-  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-}
-.filter-row + .filter-row { margin-top: 8px; }
+
 .search-box { position: relative;
 }
 .search-box input {
@@ -92,26 +87,24 @@ body {
   border-radius: var(--radius-sm); font-size: 13px; outline: none;
   background: var(--bg); color: var(--text); transition: all 0.15s;
 }
-.search-box input:focus { border-color: var(--primary); background: var(--card); }
+.search-box input:focus { border-color: var(--primary); background: var(--card); box-shadow: 0 0 0 2px var(--primary-light); }
 .search-box .icon {
   position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
   font-size: 14px; color: var(--text-3);
 }
 .filter-select {
-  padding: 8px 26px 8px 10px; border: 1px solid var(--border-2); border-radius: var(--radius-sm);
+  padding: 8px 28px 8px 10px; border: 1px solid var(--border-2); border-radius: var(--radius-sm);
   font-size: 13px; cursor: pointer; outline: none; background: var(--bg); color: var(--text-2);
   transition: all 0.15s; appearance: none; -webkit-appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23A8A29E' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
   background-repeat: no-repeat; background-position: right 8px center; background-size: 12px;
 }
-.filter-select:hover { border-color: #D0D8E8; color: var(--text); }
-.filter-select:focus { border-color: var(--primary); background: var(--card); }
-.btn-clear {
-  padding: 9px 14px; border: 1px solid var(--border-2); border-radius: var(--radius-sm);
-  background: var(--card); cursor: pointer; font-size: 13px; color: var(--text-2);
-  transition: all 0.15s; white-space: nowrap;
+.filter-select:hover { border-color: var(--border-2); color: var(--text); }
+.filter-select:focus { border-color: var(--primary); background: var(--card); box-shadow: 0 0 0 2px var(--primary-light); }
+.clear-link {
+  font-size: 12px; color: var(--text-3); cursor: pointer; white-space: nowrap; margin-left: auto;
 }
-.btn-clear:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-light); }
+.clear-link:hover { color: var(--primary); }
 
 /* ===== Content Split ===== */
 .content-split {
@@ -147,11 +140,12 @@ body {
 .job-row {
   display: grid; grid-template-columns: minmax(0, 2fr) 110px 90px 110px 40px; align-items: center;
   padding: 16px 20px; border-bottom: 1px solid var(--border);
-  cursor: pointer; transition: background 0.12s; align-items: center;
+  cursor: pointer; transition: background 0.12s;
+  border-left: 3px solid transparent;
 }
 .job-row:last-child { border-bottom: none; }
-.job-row:hover { background: #FAFBFC; }
-.job-row.active { background: var(--primary-light); }
+.job-row:hover { background: var(--bg); }
+.job-row.active { background: var(--primary-light); border-left-color: var(--primary); }
 .job-info .title-row {
   display: flex; align-items: center; gap: 8px; margin-bottom: 6px; flex-wrap: wrap;
 }
@@ -181,14 +175,15 @@ body {
 .cell.date { display: flex; align-items: center; gap: 8px; }
 .days-badge {
   display: inline-flex; align-items: center; gap: 4px;
-  padding: 3px 8px; border-radius: 20px; font-size: 11px; font-weight: 600;
-  background: #E8F5E9; color: var(--success);
+  padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600;
+  background: var(--primary-light); color: var(--primary);
 }
-.days-badge.warn { background: #FFF8E1; color: var(--warning); }
-.days-badge.old { background: #FFEBEE; color: var(--danger); }
 .days-badge::before {
   content: ""; width: 5px; height: 5px; border-radius: 50%; background: currentColor;
 }
+.days-badge.today { background: #ECFDF5; color: var(--success); }
+.days-badge.warn { background: #FFF8E1; color: var(--warning); }
+.days-badge.old { background: #FFEBEE; color: var(--danger); }
 .cell-arrow { color: var(--text-3); font-size: 12px; text-align: right; }
 
 /* ===== Pagination ===== */
@@ -247,18 +242,16 @@ body {
 .detail-body .placeholder {
   font-size: 13px; color: var(--text-3); line-height: 1.8; font-style: italic;
 }
-.detail-footer {
-  padding: 16px 20px; border-top: 1px solid var(--border); flex-shrink: 0;
-}
+.detail-footer { padding: 10px 20px; border-top: 1px solid var(--border); flex-shrink: 0; }
 .detail-body::-webkit-scrollbar { width: 5px; }
 .detail-body::-webkit-scrollbar-thumb { background: #D0D8E8; border-radius: 3px; }
 .detail-body::-webkit-scrollbar-track { background: transparent; }
 .detail-footer .btn-primary {
-  width: 100%; padding: 11px; border: none; border-radius: var(--radius-sm);
-  background: var(--primary); color: #fff; font-size: 14px; font-weight: 600;
-  cursor: pointer; transition: background 0.15s; text-decoration: none; display: inline-block; text-align: center;
+  flex: 1; padding: 7px 16px; border: none; border-radius: var(--radius-sm);
+  background: var(--primary); color: #fff; font-size: 13px; font-weight: 600;
+  cursor: pointer; transition: background 0.15s; text-decoration: none; text-align: center;
 }
-.detail-footer .btn-primary:hover { background: var(--primary-hover); }
+.detail-footer .btn-primary:hover { background: var(--primary-hover); box-shadow: var(--shadow-hover); }
 .detail-footer .btn-hint {
   text-align: center; font-size: 11px; color: var(--text-3); margin-top: 8px;
 }
@@ -369,22 +362,7 @@ body {
 }
 
 /* ===== Company Pills (compact, inside filter bar) ===== */
-.company-pills {
-  display: flex; gap: 6px; flex-wrap: wrap;
-}
-.pill {
-  display: inline-flex; align-items: center; gap: 5px;
-  padding: 6px 12px; border-radius: 20px; cursor: pointer;
-  font-size: 12px; font-weight: 500;
-  border: 1px solid var(--border-2);
-  background: var(--bg); color: var(--text-2);
-  transition: all 0.15s ease; user-select: none;
-}
-.pill .dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
-.pill.active {
-  background: var(--primary); color: #fff; border-color: transparent;
-}
-.pill:not(.active):hover { background: #E8ECF4; color: var(--text); border-color: #D0D8E8; }
+
 
 /* ===== Responsive ===== */
 @media (max-width: 1024px) {
@@ -398,12 +376,7 @@ body {
   .update-time { display: none; }
   .page { padding: 16px; }
 
-  .filter-row .search-box { width: 100%; }
-  .filter-row-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-  .filter-row-grid .filter-select { width: 100%; }
-  .filter-bar { position: relative; padding-top: 32px; }
-  .filter-bar .clear-link { position: absolute; top: 8px; right: 12px; font-size: 12px; color: var(--text-3); cursor: pointer; }
-  .filter-bar .clear-link:hover { color: var(--primary); }
+  
   .table-header { display: none; }
   .job-row { display: flex; flex-direction: column; gap: 4px; padding: 10px 16px; cursor: pointer; align-items: stretch; }
   .jr-title { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
@@ -430,17 +403,10 @@ body {
   .result-grid .item:first-child { border-right: none; border-bottom: 1px solid var(--border); }
 }
 
-::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #D0D8E8; border-radius: 3px; }
-/* ===== Trust status line ===== */
-.trust-line {
-  font-size: 12px; color: var(--text-3); padding: 6px 24px;
-  background: #FAFBFC; border-bottom: 1px solid var(--border);
-  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-}
-.trust-line .highlight { color: var(--primary); font-weight: 600; }
-.trust-line .sep { color: var(--border-2); }
+::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 3px; }
+/* ===== Stats Cards ===== */
 
 /* ===== Detail backdrop (mobile) ===== */
 .detail-backdrop {
@@ -450,9 +416,7 @@ body {
 .detail-backdrop.active { display: block; }
 
 /* ===== Mobile detail actions ===== */
-.detail-actions {
-  display: flex; gap: 8px; align-items: center; margin-top: 10px;
-}
+.detail-actions { display: flex; gap: 6px; }
 .detail-actions .btn-primary { flex: 1; }
 .btn-copy {
   flex-shrink: 0; padding: 11px 14px; border: 1px solid var(--border-2);
@@ -464,7 +428,6 @@ body {
 
 /* ===== Mobile bottom sheet ===== */
 @media (max-width: 768px) {
-  .trust-line { padding: 6px 16px; font-size: 11px; }
   .jobs-table-area { max-height: 340px; }
   .detail-panel.mobile-active {
     position: fixed; bottom: 0; left: 0; right: 0; top: auto;
@@ -478,14 +441,6 @@ body {
   .detail-panel:not(.mobile-active) { display: none; }
 }
 
-.stat-mini {
-  background: var(--card); border-radius: var(--radius-sm);
-  padding: 8px 12px; border: 1px solid var(--border);
-  display: flex; align-items: center; justify-content: space-between;
-  height: 48px;
-}
-.stat-mini .num { font-size: 20px; font-weight: 700; color: var(--primary); line-height: 1; }
-.stat-mini .label { font-size: 11px; color: var(--text-3); white-space: nowrap; }
 .job-row { cursor: pointer; transition: background 0.12s; }
 .job-row:hover { background: #FAFBFC; }
 .job-row.active { background: var(--primary-light); }
@@ -511,7 +466,7 @@ body {
 
 <header class="top-nav">
   <div class="nav-inner">
-    <div class="brand"><img src="/favicon-32x32.png" alt="hotjob" class="brand-icon">hotjob</div>
+    <div class="brand"><span style="font-size:20px;line-height:1">🔥</span> hotjob</div>
     <nav class="nav-tabs">
       <button class="nav-tab active" data-tab="latest">最新岗位</button>
       <button class="nav-tab" data-tab="link">链接查时间</button>
@@ -519,12 +474,25 @@ body {
     <div class="update-time" id="updateTime">更新于 --:--</div>
   </div>
 </header>
-<div class="trust-line" id="trustLine">数据获取中...</div>
-<div id="statGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:0 24px 8px;background:#FAFBFC;border-bottom:1px solid var(--border);">
-  <div class="stat-mini"><span class="num" id="sgToday">-</span><span class="label">今日新增</span></div>
-  <div class="stat-mini"><span class="num" id="sg3Day">-</span><span class="label">近3天</span></div>
-  <div class="stat-mini"><span class="num" id="sg7Day">-</span><span class="label">近7天</span></div>
-  <div class="stat-mini"><span class="num" id="sg30Day">-</span><span class="label">近30天</span></div>
+<div class="stats-cards" id="statCards" style="display:none;padding:12px 24px;background:var(--card);border-bottom:1px solid var(--border);">
+  <div style="max-width:1280px;margin:0 auto;display:flex;gap:10px;">
+    <div class="stat-card" style="flex:1;background:var(--primary-light);border:1px solid var(--border);border-radius:6px;padding:8px 14px;min-width:0">
+      <div class="stat-num" style="font-size:20px;font-weight:700;color:var(--primary);line-height:1.2;font-variant-numeric:tabular-nums" id="scToday">-</div>
+      <div class="stat-label" style="font-size:11px;color:var(--text-3);font-weight:500">今日新增</div>
+    </div>
+    <div class="stat-card" style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:8px 14px;min-width:0">
+      <div class="stat-num" style="font-size:20px;font-weight:700;color:var(--primary);line-height:1.2;font-variant-numeric:tabular-nums" id="sc3Day">-</div>
+      <div class="stat-label" style="font-size:11px;color:var(--text-3);font-weight:500">近 3 天</div>
+    </div>
+    <div class="stat-card" style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:8px 14px;min-width:0">
+      <div class="stat-num" style="font-size:20px;font-weight:700;color:var(--primary);line-height:1.2;font-variant-numeric:tabular-nums" id="sc7Day">-</div>
+      <div class="stat-label" style="font-size:11px;color:var(--text-3);font-weight:500">近 7 天</div>
+    </div>
+    <div class="stat-card" style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:8px 14px;min-width:0">
+      <div class="stat-num" style="font-size:20px;font-weight:700;color:var(--primary);line-height:1.2;font-variant-numeric:tabular-nums" id="sc30Day">-</div>
+      <div class="stat-label" style="font-size:11px;color:var(--text-3);font-weight:500">近 30 天</div>
+    </div>
+  </div>
 </div>
 <div class="detail-backdrop" id="detailBackdrop"></div>
 
@@ -534,39 +502,35 @@ body {
 <section id="latestTab" class="tab-panel active">
 
 
-  <div class="filter-bar">
+  <div class="filter-bar" id="filterBar">
+    <div class="search-box">
+      <span class="icon">🔍</span>
+      <input type="text" id="keywordInput" placeholder="搜索公司、岗位或关键词…">
+    </div>
+    <select class="filter-select" id="companySelect">
+      <option value="">全部公司</option>
+    </select>
+    <select class="filter-select" id="daysSelect">
+      <option value="0">全部时间</option>
+      <option value="1">今日</option>
+      <option value="3">近3天</option>
+      <option value="7" selected>近7天</option>
+      <option value="14">近14天</option>
+      <option value="30">近30天</option>
+    </select>
+    <select class="filter-select" id="categorySelect">
+      <option value="">全部职类</option>
+    </select>
+    <select class="filter-select" id="citySelect">
+      <option value="">全部城市</option>
+    </select>
+    <select class="filter-select" id="recruitTypeSelect">
+      <option value="">全部类型</option>
+      <option value="社招">社招</option>
+      <option value="校招">校招</option>
+      <option value="实习">实习</option>
+    </select>
     <span class="clear-link" id="clearFilters">清空筛选</span>
-    <div class="filter-row">
-      <div class="search-box">
-        <span class="icon">🔍</span>
-        <input type="text" id="keywordInput" placeholder="搜索公司、职位、团队或关键词">
-      </div>
-    </div>
-    <div class="filter-row-grid">
-      <select class="filter-select" id="companySelect">
-        <option value="">全部公司</option>
-      </select>
-      <select class="filter-select" id="daysSelect">
-        <option value="0">全部时间</option>
-        <option value="1">今日</option>
-        <option value="3">近3天</option>
-        <option value="7" selected>近7天</option>
-        <option value="14">近14天</option>
-        <option value="30">近30天</option>
-      </select>
-      <select class="filter-select" id="citySelect">
-        <option value="">全部城市</option>
-      </select>
-      <select class="filter-select" id="recruitTypeSelect">
-        <option value="">全部类型</option>
-        <option value="社招">社招</option>
-        <option value="校招">校招</option>
-        <option value="实习">实习</option>
-      </select>
-      <select class="filter-select" id="categorySelect">
-        <option value="">全部职类</option>
-      </select>
-    </div>
   </div>
 
   <div id="limitNotice" class="loading-banner" style="display:none;margin-bottom:12px;background:#E3F2FD;color:#1565C0;border-color:#90CAF9;"></div>
@@ -762,8 +726,7 @@ async function fetchData() {
         refreshCitySelect();
         renderStats(_p.data);
         renderTable(getFilteredJobs());
-        const _t = document.getElementById('trustLine');
-        if (_t) _t.textContent = '\u663e\u793a\u7f13\u5b58\u6570\u636e\uff0c\u540e\u53f0\u5237\u65b0\u4e2d...';
+        /* trust-line removed */
       }
     } catch(e) {}
   }
@@ -791,22 +754,18 @@ async function fetchData() {
     if (data.jobs && data.jobs.length > 0) state._fetchRetries = 0;
     renderStats(data);
     renderTable(getFilteredJobs());
-    // Update trust line
-    const tl = document.getElementById('trustLine');
     const refreshTs = data.last_refresh || 0;
     const ss = (data.stats || {});
     if (refreshTs) {
       const mins = Math.floor((Date.now()/1000 - refreshTs) / 60);
       tl.innerHTML = `数据更新于 <span class="highlight">${mins <= 1 ? '刚刚' : mins + ' 分钟前'}</span> <span class="sep">·</span> 今日新增 <span class="highlight">${ss.today ?? '-'}</span> 个岗位`;
       // Ensure stat grid is visible
-      const _sg = document.getElementById('statGrid');
-      if (_sg) { _sg.style.display = 'grid';
-        if (document.getElementById('sgToday')) {
-          document.getElementById('sgToday').textContent = ss.today ?? '-';
-          document.getElementById('sg3Day').textContent = ss.d3 ?? '-';
-          document.getElementById('sg7Day').textContent = ss.d7 ?? '-';
-          document.getElementById('sg30Day').textContent = ss.d30 ?? '-';
-        }
+      const _sg = document.getElementById('statCards');
+      if (_sg) { _sg.style.display = 'block';
+        document.getElementById('scToday').textContent = ss.today ?? '-';
+        document.getElementById('sc3Day').textContent = ss.d3 ?? '-';
+        document.getElementById('sc7Day').textContent = ss.d7 ?? '-';
+        document.getElementById('sc30Day').textContent = ss.d30 ?? '-';
       }
     } else {
       tl.textContent = '数据获取中...';
@@ -852,13 +811,13 @@ async function fetchData() {
 
 function renderStats(data) {
   const s = (data.stats || {});
-  const cs = document.getElementById('statGrid');
+  const cs = document.getElementById('statCards');
   if (cs && (s.today !== undefined || s.d3 !== undefined)) {
-    cs.style.display = 'grid';
-    document.getElementById('sgToday').textContent = s.today ?? '-';
-    document.getElementById('sg3Day').textContent = s.d3 ?? '-';
-    document.getElementById('sg7Day').textContent = s.d7 ?? '-';
-    document.getElementById('sg30Day').textContent = s.d30 ?? '-';
+    cs.style.display = 'block';
+    document.getElementById('scToday').textContent = s.today ?? '-';
+    document.getElementById('sc3Day').textContent = s.d3 ?? '-';
+    document.getElementById('sc7Day').textContent = s.d7 ?? '-';
+    document.getElementById('sc30Day').textContent = s.d30 ?? '-';
   }
   // Show limit notice when viewing a single company that hits its max
   const ln = document.getElementById('limitNotice');
@@ -868,19 +827,14 @@ function renderStats(data) {
       ln.style.display = 'block';
       ln.textContent = '💡 ' + (co.name || '该公司') + ' 仅展示最新 ' + co.max_count + ' 个岗位（获取上限）';
       // Also update trust line
-      const tl = document.getElementById('trustLine');
-      tl.innerHTML = tl.innerHTML.replace('今日新增', '最新 ' + co.max_count + ' 岗 · 今日新增');
+      /* trust-line removed */
     } else {
       ln.style.display = 'none';
-      const tl = document.getElementById('trustLine');
-      if (tl && state.company && s.by_company && s.by_company[state.company]) {
-        tl.innerHTML = tl.innerHTML.replace(/最新 \d+ 岗 · /, '');
-      }
+      /* trust-line removed */
     }
   } else {
     ln.style.display = 'none';
-    const tl = document.getElementById('trustLine');
-    if (tl) tl.innerHTML = tl.innerHTML.replace(/最新 \d+ 岗 · /, '');
+    /* trust-line removed */
   }
 }
 
