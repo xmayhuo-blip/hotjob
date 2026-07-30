@@ -23,7 +23,7 @@ def check(label, cond, detail=""):
 def check_gt(label, got, mn):
     return check(label, got > mn, f"got={got}, min={mn}")
 
-MIN_JOBS = {"tencent": 100, "bytedance": 50, "alibaba": 50, "highflyer": 1, "zhipu": 1,
+MIN_JOBS = {"tencent": 100, "bytedance": 500, "alibaba": 50, "highflyer": 1, "zhipu": 1,
             "moonshot": 1, "minimax": 1, "kuaishou": 10, "lilith": 1, "kurogame": 1}
 
 print("Business sanity test: verifying job counts against live ATS APIs")

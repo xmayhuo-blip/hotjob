@@ -17,7 +17,7 @@ import sys, os, json, urllib.request, urllib.error
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 BASE = sys.argv[1] if len(sys.argv) > 1 else "http://localhost:8787"
-MIN_PER_COMPANY = {"tencent": 10, "bytedance": 10, "alibaba": 10,
+MIN_PER_COMPANY = {"tencent": 10, "bytedance": 500, "alibaba": 10,
                    "highflyer": 1, "zhipu": 1, "moonshot": 1,
                    "minimax": 1, "kuaishou": 5, "lilith": 1, "kurogame": 1}
 MIN_TOTAL = 50

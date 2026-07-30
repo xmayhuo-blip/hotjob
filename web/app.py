@@ -43,7 +43,7 @@ _CACHE_PATH = "/tmp/hotjob_cache.json"
 # so that poisoned cache data (e.g., 1 job for Alibaba due to old dedup bug)
 # is rejected on load, not silently served to users.
 MIN_JOBS_THRESHOLD = {
-    "tencent": 10, "bytedance": 10, "alibaba": 10, "highflyer": 1, "zhipu": 1,
+    "tencent": 10, "bytedance": 500, "alibaba": 10, "highflyer": 1, "zhipu": 1,
     "moonshot": 1, "minimax": 1, "kuaishou": 5, "lilith": 1, "kurogame": 1,
 }
 
@@ -138,7 +138,7 @@ def _rate_limit_ok(client_ip):
 def _build_companies():
     return {
         "tencent":    {"name": "腾讯",     "color": "#00A4FF", "url": "https://careers.tencent.com/", "recruit_type": "社招", "max_count": 600},
-        "bytedance":  {"name": "字节跳动",  "color": "#2B2B2B", "url": "https://jobs.bytedance.com/", "recruit_type": "社招", "max_count": 120},
+        "bytedance":  {"name": "字节跳动",  "color": "#2B2B2B", "url": "https://jobs.bytedance.com/", "recruit_type": "社招", "max_count": 600},
         "alibaba":    {"name": "阿里巴巴",  "color": "#FF6A00", "url": "https://talent.alibaba.com/", "recruit_type": "社招", "max_count": 500},
         "highflyer":  {"name": "DeepSeek", "color": "#6C5CE7", "url": "https://app.mokahr.com/social-recruitment/high-flyer/140576", "recruit_type": "社招", "max_count": 500},
         "zhipu":      {"name": "智谱AI",   "color": "#00B894", "url": "https://zhipu-ai.jobs.feishu.cn/", "recruit_type": "社招", "max_count": 400},

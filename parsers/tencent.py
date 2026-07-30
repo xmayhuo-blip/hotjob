@@ -20,14 +20,18 @@ def fetch(keyword="", pages=6, size=100):
         posts = ((d.get("Data") or {}).get("Posts")) or []
         if not posts:
             break
-        for j in posts:
+            for j in posts:
+                desc = j.get("Responsibility", "")
+                req = j.get("Requirement", "")
             out.append({
                 "title": j.get("RecruitPostName", ""),
                 "company": "腾讯",
                 "location": j.get("LocationName", ""),
                 "dept": j.get("CategoryName", "") or j.get("BGName", ""),
                 "date": j.get("LastUpdateTime", ""),
-                "jd": j.get("Responsibility", ""),
+                "jd": "\n\n".join(x for x in [desc, req] if x),
+                "responsibility": desc,
+                "requirement": req,
                 "url": j.get("PostURL", ""),
                 "id": str(j.get("PostId", "")),
             })
