@@ -6,6 +6,7 @@
 
 import os
 import random
+import threading
 import time as _time
 
 # Safety: domain-level rate limiting prevents ATS IP bans
@@ -57,8 +58,8 @@ def _random_ua():
 
 # Parser modules check this at import time to bypass SSL verification
 
-import threading
 import sys
+import importlib
 
 # 10 家 MVP 公司配置
 # (module_name, fetch_func_name, args_tuple)
