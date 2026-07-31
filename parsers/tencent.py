@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""hiring_radar local-parser：腾讯官方招聘 API → JSON(stdout)。
-用法: python3 tencent.py [keyword] [pages]   端点匿名 GET，字段六项全。"""
+"""hotjob local-parser：腾讯官方招聘 API → JSON(stdout)。"""
 import os
 import sys, json, ssl, urllib.request, urllib.parse
 
@@ -20,9 +19,9 @@ def fetch(keyword="", pages=6, size=100):
         posts = ((d.get("Data") or {}).get("Posts")) or []
         if not posts:
             break
-            for j in posts:
-                desc = j.get("Responsibility", "")
-                req = j.get("Requirement", "")
+        for j in posts:
+            desc = j.get("Responsibility", "")
+            req = j.get("Requirement", "")
             out.append({
                 "title": j.get("RecruitPostName", ""),
                 "company": "腾讯",
