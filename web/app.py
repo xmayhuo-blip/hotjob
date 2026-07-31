@@ -48,15 +48,19 @@ MIN_JOBS_THRESHOLD = {
 }
 
 def _save_cache():
-    """Serialize _cache to disk for warm restart."""
     import json
     with _cache_lock:
-        data = {k: v for k, v in _cache.items() if v.get("data")}
-    try:
-        with open(_CACHE_PATH, "w") as f:
-            json.dump({"cache": data, "ts": time.time()}, f, ensure_ascii=False)
-    except Exception as e:
-        sys.stderr.write(f"[cache] save failed: {e}\n")
+        data = {}
+        for k, v in _cache.items():
+            if v.get("failed") or not v.get("data"):
+                continue
+            data[k] = {"data": v["data"]}
+    if data:
+        try:
+            with open(_CACHE_PATH, "w") as f:
+                json.dump({"cache": data, "ts": time.time()}, f, ensure_ascii=False)
+        except Exception as e:
+            sys.stderr.write("[cache] save failed: %s\n" % e)
 
 def _load_cache():
     """Load cached data from disk into _cache, but ONLY if data passes
@@ -156,7 +160,7 @@ REFRESH_INTERVAL = 3600  # seconds between full data refreshes (1 hour)
 _last_refresh = 0        # timestamp of last completed refresh cycle
 
 CACHE_TTL = 600         # 10 min — reduces API call frequency by 50% vs 5 min
-STALE_TTL = 3600        # 1 hour — serve stale data on fetch failure
+STALE_TTL = 86400       # 24 hours — serve stale cache when fresh fetch fails
 FAIL_CACHE_TTL = 300    # 5 min — cache failed fetches so they don't retry infinitely
 _inflight = {}
 _inflight_lock = threading.Lock()
