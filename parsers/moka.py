@@ -73,7 +73,9 @@ def fetch(org, site, company, keyword="", pages=10, limit=50):
                 "type": j.get("commitment", ""),
                 "date": j.get("publishedAt") or j.get("createdAt") or j.get("openedAt", ""),
                 "comp": comp,
-                "jd": _strip(j.get("jobDescription", "")),
+                "jd": _strip(j.get("jobDescription", "") or j.get("description", "") or ""),
+                "responsibility": _strip(j.get("description", "") or ""),
+                "requirement": _strip(j.get("requirement", "") or j.get("qualification", "") or ""),
                 "url": f"https://app.mokahr.com/social-recruitment/{org}/{site}#/job/{jid}",
                 "id": jid,
             })

@@ -120,8 +120,8 @@ def fetch(keyword="", pages=3, page_size=100):
             # 职位类别
             cat_code = j.get("positionCategoryCode", "") or ""
             cat_name = CATEGORY_MAP.get(cat_code, cat_code)
-            desc_raw = j.get("description", "") or ""
-            req_raw = j.get("requirement", "") or ""
+            desc_raw = j.get("description", "") or j.get("duty", "") or j.get("jobDescription", "") or ""
+            req_raw = j.get("requirement", "") or j.get("qualification", "") or ""
             out.append({
                 "title": j.get("name", ""),
                 "company": "快手",

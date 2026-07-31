@@ -1024,31 +1024,55 @@ function renderDetail() {
     <div class="detail-body">
       ${
         (() => {
-          const duty = j.responsibility || '';
-          const req = j.requirement || '';
-          if (duty || req) {
-            let html = '';
-            if (duty && duty.trim().length > 5) {
-              const dutyLines = String(duty).split(/\n+/).filter(l => l.trim());
-              html += '<h4>岗位职责</h4>' + dutyLines.map(l => `<p>${escapeHtml(l.trim())}</p>`).join('');
-            }
-            if (req && req.trim().length > 5) {
-              const reqLines = String(req).split(/\n+/).filter(l => l.trim());
-              html += '<h4>岗位要求</h4>' + reqLines.map(l => `<p>${escapeHtml(l.trim())}</p>`).join('');
-            }
-            if (html) return html;
+          const duty = (j.responsibility || j.description || '').trim();
+          const req = (j.requirement || '').trim();
+          const jd = (j.jd || j.detail || '').trim();
+
+          // Helper: render a titled section
+          const sec = (title, text) => {
+            const lines = String(text).split(/\n+/).map(l => l.trim()).filter(Boolean);
+            if (!lines.length) return '';
+            return '<h4>' + title + '</h4>' + lines.map(l => '<p>' + escapeHtml(l) + '</p>').join('');
+          };
+
+          // Case 1: both sections present -> show both
+          if (duty.length > 5 && req.length > 5) {
+            return sec('岗位职责', duty) + sec('岗位要求', req);
           }
-          // Fallback: robust header-based splitting of combined JD
-          const jd = j.description || j.jd || j.detail || '';
-          if (jd && jd.trim().length > 10) {
+
+          // Case 2: only duty present, but jd is longer (requirement embedded in jd)
+          if (duty.length > 5 && jd.length > duty.length + 10) {
+            const idx = jd.indexOf(duty);
+            const rest = (idx >= 0 ? jd.substring(idx + duty.length) : '').trim();
+            if (rest.length > 5) {
+              return sec('岗位职责', duty) + sec('岗位要求', rest);
+            }
+          }
+
+          // Case 3: only req present but jd longer (duty embedded)
+          if (req.length > 5 && jd.length > req.length + 10) {
+            const idx = jd.indexOf(req);
+            const before = (idx > 0 ? jd.substring(0, idx) : '').trim();
+            if (before.length > 5) {
+              return sec('岗位职责', before) + sec('岗位要求', req);
+            }
+          }
+
+          // Case 4: combined jd -> try header-based splitting
+          if (jd.length > 10) {
             const sections = splitJdSections(jd);
-            if (sections) {
+            if (sections && sections.length) {
               return sections.map(s =>
                 '<h4>' + escapeHtml(s.title) + '</h4>' +
-                s.lines.map(l => `<p>${escapeHtml(l)}</p>`).join('')
+                s.lines.map(l => '<p>' + escapeHtml(l) + '</p>').join('')
               ).join('');
             }
           }
+
+          // Case 5: show whatever we have under 岗位描述
+          if (duty.length > 5) return sec('岗位描述', duty);
+          if (req.length > 5) return sec('岗位描述', req);
+          if (jd.length > 5) return sec('岗位描述', jd);
           return '<p class="placeholder">该岗位未提供详细描述，建议前往官网查看完整信息。</p>';
         })()
       }
