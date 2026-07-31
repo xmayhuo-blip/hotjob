@@ -1039,6 +1039,10 @@ function renderDetail() {
           if (duty.length > 5 && req.length > 5) {
             return sec('岗位职责', duty) + sec('岗位要求', req);
           }
+          // Case 1b: duty only -> show duty + placeholder for requirement
+          if (duty.length > 5 && !req.length) {
+            return sec('岗位职责', duty) + '<h4>岗位要求</h4><p class="placeholder">该岗位详情未提供岗位要求，建议前往官网查看完整信息。</p>';
+          }
 
           // Case 2: only duty present, but jd is longer (requirement embedded in jd)
           if (duty.length > 5 && jd.length > duty.length + 10) {

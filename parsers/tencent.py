@@ -3,6 +3,8 @@
 """hotjob local-parser：腾讯官方招聘 API → JSON(stdout)。"""
 import os
 import sys, json, ssl, urllib.request, urllib.parse
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from jd_splitter import split_jd
 
 CTX = ssl.create_default_context()
 if os.environ.get("HIRING_RADAR_INSECURE") == "1":
@@ -27,11 +29,10 @@ def fetch(keyword="", pages=6, size=100):
                    or j.get("JobRequirement", "") or j.get("jobRequirement", "") or "")
             # If no separate requirement field, try splitting Responsibility text
             if not req.strip() and desc.strip():
-                import re as _re
-                _split = _re.split(r'(?:任职要求|岗位要求|职位要求|任职资格|我们需要你|我们希望你是|岗位要求|任职条件|应聘要求)\s*[:：]?', desc, maxsplit=1)
-                if len(_split) == 2 and _split[1].strip():
-                    desc = _split[0].strip()
-                    req = _split[1].strip()
+                _d, _r = split_jd(desc)
+                if _r.strip():
+                    desc = _d
+                    req = _r
             out.append({
                 "title": j.get("RecruitPostName", ""),
                 "company": "腾讯",

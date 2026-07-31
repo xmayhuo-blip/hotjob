@@ -6,6 +6,9 @@ API: GET /recruit/e/api/v1/open/positions/simple
 签名: HMAC-SHA256(signTimestamp + canonicalQuery + SECRET, SECRET)
 """
 import sys, json, re, ssl, hmac, hashlib, urllib.request, urllib.parse, os
+import sys as _sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from jd_splitter import split_jd
 
 DOMAIN = "zhaopin.kuaishou.cn"
 BASE_URL = f"https://{DOMAIN}"
@@ -121,7 +124,14 @@ def fetch(keyword="", pages=3, page_size=100):
             cat_code = j.get("positionCategoryCode", "") or ""
             cat_name = CATEGORY_MAP.get(cat_code, cat_code)
             desc_raw = j.get("description", "") or j.get("duty", "") or j.get("jobDescription", "") or ""
-            req_raw = j.get("requirement", "") or j.get("qualification", "") or ""
+            req_raw = (j.get("requirement", "") or j.get("qualification", "")
+                       or j.get("Requirement", "") or j.get("jobRequirement", "") or "")
+            # If no separate requirement, split by headers or sentence keywords
+            if not req_raw.strip() and desc_raw.strip():
+                _d, _r = split_jd(desc_raw)
+                if _r.strip():
+                    desc_raw = _d
+                    req_raw = _r
             out.append({
                 "title": j.get("name", ""),
                 "company": "快手",
