@@ -356,7 +356,7 @@ body {
 
 /* ===== Responsive ===== */
 @media (max-width: 1024px) {
-  .content-split { grid-template-columns: 1fr; gap: 0; }
+  .content-split { grid-template-columns: 1fr; gap: 12px; }
   .detail-panel { position: static; max-height: none; border-radius: 0; border-left: none; border-right: none; }
 
 }
@@ -384,8 +384,8 @@ body {
   .rt-badge { display: inline-block; padding: 1px 5px; border-radius: 3px; font-size: 10px; font-weight: 600; background: var(--primary-light); color: var(--primary); }
   .rt-badge.campus { background: #FFF3E0; color: #E67E22; }
   .jr-row1 .days-badge { flex-shrink: 0; }
-  .filter-bar { border-radius: 0; margin: 0; border-left: none; border-right: none; }
-  .jobs-table-area { max-height: 540px; overflow-y: auto; -webkit-overflow-scrolling: touch; border-bottom: none; border-radius: 0; border-left: none; border-right: none; }
+  .filter-bar { border-radius: 0; margin: 0 0 12px; border-left: none; border-right: none; }
+  .jobs-table-area { max-height: 540px; overflow-y: auto; -webkit-overflow-scrolling: touch; border-bottom: none; border-radius: 0; border-left: none; border-right: none; margin-bottom: 12px; }
   .jobs-table-area::-webkit-scrollbar { width: 3px; }
   .jobs-table-area::-webkit-scrollbar-thumb { background: #D0D8E8; border-radius: 2px; }
   .pagination { display: none; }
@@ -471,13 +471,13 @@ body {
 
 <!-- ===== Latest Jobs Tab ===== -->
 <section id="latestTab" class="tab-panel active">
-<div class="hero-band" style="padding:18px 24px 8px;background:var(--card);border-bottom:1px solid var(--border);">
+<div class="hero-band" style="padding:18px 16px 12px;background:var(--card);border-bottom:1px solid var(--border);">
   <div style="max-width:1200px;margin:0 auto;display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;">
     <span style="font-size:22px;font-weight:800;color:var(--text);letter-spacing:0;">只看<span style="color:var(--primary);font-weight:900;">新鲜岗位</span></span>
     <span style="font-size:14px;color:var(--text-3);"><s style="color:#bbb;text-decoration:line-through;">僵尸JD</s> 请走开</span>
   </div>
 </div>
-<div class="stats-cards" id="statCards" style="display:none;padding:12px 24px 16px;background:var(--card);border-bottom:1px solid var(--border);">
+<div class="stats-cards" id="statCards" style="display:none;padding:12px 0 16px;background:var(--card);border-bottom:1px solid var(--border);">
   <div style="max-width:1200px;margin:0 auto;">
     <div id="statUpdateTime" style="font-size:11px;color:var(--text-3);margin-bottom:8px;">数据更新中...</div>
     <div style="display:flex;gap:12px;">
@@ -533,9 +533,9 @@ body {
     <button class="filter-select" id="clearFilters" style="background:var(--bg);cursor:pointer;color:var(--text-3);border-color:var(--border-2);padding:8px 12px;flex-shrink:0">清空筛选</button>
   </div>
 
-  <div id="limitNotice" class="loading-banner" style="display:none;margin-bottom:12px;background:#E3F2FD;color:#1565C0;border-color:#90CAF9;"></div>
+  <div id="limitNotice" class="loading-banner" style="display:none;margin:0 0 12px;background:#E3F2FD;color:#1565C0;border-color:#90CAF9;"></div>
   <div class="content-split">
-    <div id="truncNotice" class="loading-banner" style="display:none;margin-bottom:8px;background:#FFF8E1;color:#8D6E63;border-color:#FFE0B2;">仅显示最新 800 条，可在筛选后查看更早岗位</div>
+    <div id="truncNotice" class="loading-banner" style="display:none;margin:0 0 12px;background:#FFF8E1;color:#8D6E63;border-color:#FFE0B2;">仅显示最新 800 条，可在筛选后查看更早岗位</div>
     <div class="jobs-table-area" id="jobsTableArea">
       <div class="loading">
         <div class="spinner"></div>
