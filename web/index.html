@@ -35,7 +35,8 @@ body {
 
 /* ===== Top Navigation ===== */
 .top-nav {
-  background: var(--card); border-bottom: 1px solid var(--border);
+  background: rgba(255,255,255,0.92); backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--border); box-shadow: 0 1px 8px rgba(0,0,0,0.03);
   position: sticky; top: 0; z-index: 200;
 }
 .top-nav .nav-inner {
@@ -63,7 +64,7 @@ body {
 .nav-update { font-size: 12px; color: var(--text-3); }
 
 /* ===== Layout ===== */
-.page { max-width: 1280px; margin: 0 auto; padding: 24px; }
+.page { max-width: 1200px; margin: 0 auto; padding: 28px 24px 48px; }
 .tab-panel { display: none; }
 .tab-panel.active { display: block; }
 
@@ -71,16 +72,17 @@ body {
 
 /* ===== Filter Bar ===== */
 .filter-bar {
-  background: var(--card); border-radius: var(--radius);
-  padding: 12px 16px; margin-bottom: 16px; border: 1px solid var(--border);
-  display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  background: var(--card); border-radius: 10px;
+  padding: 14px 16px; margin-bottom: 20px; border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
 }
 
 .search-box { position: relative;
 }
 .search-box input {
-  width: 100%; padding: 8px 12px 8px 32px; border: 1px solid var(--border-2);
-  border-radius: var(--radius-sm); font-size: 13px; outline: none;
+  width: 100%; padding: 9px 14px 9px 36px; border: 1px solid var(--border-2);
+  border-radius: 8px; font-size: 13px; outline: none;
   background: var(--bg); color: var(--text); transition: all 0.15s;
 }
 .search-box input:focus { border-color: var(--primary); background: var(--card); box-shadow: 0 0 0 2px var(--primary-light); }
@@ -89,7 +91,7 @@ body {
   font-size: 14px; color: var(--text-3);
 }
 .filter-select {
-  padding: 8px 28px 8px 10px; border: 1px solid var(--border-2); border-radius: var(--radius-sm);
+  padding: 9px 30px 9px 12px; border: 1px solid var(--border-2); border-radius: 8px;
   font-size: 13px; cursor: pointer; outline: none; background: var(--bg); color: var(--text-2);
   transition: all 0.15s; appearance: none; -webkit-appearance: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23A8A29E' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
@@ -113,8 +115,9 @@ body {
   }
 }
 .results-summary {
-  padding: 10px 20px; border-bottom: 1px solid var(--border);
+  padding: 12px 20px; border-bottom: 1px solid var(--border);
   font-size: 13px; color: var(--text-2); background: #FAFBFC;
+  display: flex; align-items: center; gap: 8px;
 }
 .results-summary .results-count strong {
   color: var(--primary); font-weight: 700; font-size: 15px;
@@ -126,7 +129,7 @@ body {
 }
 .job-row {
   display: grid; grid-template-columns: minmax(0, 2fr) 110px 90px 110px 40px; align-items: center;
-  padding: 16px 20px; border-bottom: 1px solid var(--border);
+  padding: 18px 20px; border-bottom: 1px solid var(--border);
   cursor: pointer; transition: background 0.12s;
   border-left: 3px solid transparent;
 }
@@ -187,8 +190,8 @@ body {
 
 /* ===== Detail Panel ===== */
 .detail-panel {
-  background: var(--card); border-radius: var(--radius); border: 1px solid var(--border);
-  box-shadow: var(--shadow); position: sticky; top: 76px;
+  background: var(--card); border-radius: 10px; border: 1px solid var(--border);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.05); position: sticky; top: 76px;
   display: flex; flex-direction: column;
   max-height: calc(100vh - 92px);
 }
@@ -245,7 +248,7 @@ body {
 
 /* ===== Loading & Empty ===== */
 .loading, .empty {
-  padding: 60px 20px; text-align: center; color: var(--text-3);
+  padding: 72px 20px; text-align: center; color: var(--text-3);
 }
 .spinner {
   width: 36px; height: 36px; border: 3px solid var(--border);
@@ -367,7 +370,7 @@ body {
   .table-header { display: none; }
   .job-row { display: flex; flex-direction: column; gap: 4px; padding: 10px 16px; cursor: pointer; align-items: stretch; }
   .jr-title { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
-  .jr-title .title { font-size: 14px; font-weight: 600; color: var(--text); line-height: 1.4; flex: 1; min-width: 0; text-align: left; }
+  .jr-title .title { font-size: 14px; font-weight: 600; color: var(--text); line-height: 1.4; flex: 1; min-width: 0; text-align: left; letter-spacing: 0; }
   .jr-meta { display: flex; align-items: flex-start; justify-content: flex-start; gap: 6px; }
   .jr-meta .company { font-size: 12px; color: var(--text-2); display: flex; align-items: center; gap: 4px; min-width: 0; }
   .jr-meta .company { padding-left: 0; } .jr-meta .company .dot { display: none; }
@@ -461,29 +464,29 @@ body {
     <div class="update-time" id="updateTime">更新于 --:--</div>
   </div>
 </header>
-<div class="hero-band" style="padding:12px 24px 4px;background:var(--card);border-bottom:1px solid var(--border);">
-  <div style="max-width:1280px;margin:0 auto;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-    <span style="font-size:18px;font-weight:700;color:var(--text);">只看<span style="color:var(--primary);font-weight:800;">新鲜岗位</span></span>
+<div class="hero-band" style="padding:18px 24px 8px;background:var(--card);border-bottom:1px solid var(--border);">
+  <div style="max-width:1200px;margin:0 auto;display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;">
+    <span style="font-size:22px;font-weight:800;color:var(--text);letter-spacing:0;">只看<span style="color:var(--primary);font-weight:900;">新鲜岗位</span></span>
     <span style="font-size:14px;color:var(--text-3);"><s style="color:#bbb;text-decoration:line-through;">僵尸JD</s> 请走开</span>
   </div>
 </div>
-<div class="stats-cards" id="statCards" style="display:none;padding:12px 24px;background:var(--card);border-bottom:1px solid var(--border);">
-  <div style="max-width:1280px;margin:0 auto;">
-    <div id="statUpdateTime" style="font-size:11px;color:var(--text-3);margin-bottom:6px;">数据更新中...</div>
-    <div style="display:flex;gap:10px;">
-    <div class="stat-card" style="flex:1;background:var(--primary-light);border:1px solid var(--border);border-radius:6px;padding:8px 14px;min-width:0">
+<div class="stats-cards" id="statCards" style="display:none;padding:12px 24px 16px;background:var(--card);border-bottom:1px solid var(--border);">
+  <div style="max-width:1200px;margin:0 auto;">
+    <div id="statUpdateTime" style="font-size:11px;color:var(--text-3);margin-bottom:8px;">数据更新中...</div>
+    <div style="display:flex;gap:12px;">
+    <div class="stat-card" style="flex:1;background:var(--primary-light);border:1px solid var(--border);border-radius:8px;padding:10px 16px;min-width:0;box-shadow:inset 0 1px 2px rgba(0,0,0,0.02)">
       <div class="stat-num" style="font-size:20px;font-weight:700;color:var(--primary);line-height:1.2;font-variant-numeric:tabular-nums" id="scToday">-</div>
       <div class="stat-label" style="font-size:11px;color:var(--text-3);font-weight:500">今日新增</div>
     </div>
-    <div class="stat-card" style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:8px 14px;min-width:0">
+    <div class="stat-card" style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 16px;min-width:0">
       <div class="stat-num" style="font-size:20px;font-weight:700;color:var(--primary);line-height:1.2;font-variant-numeric:tabular-nums" id="sc3Day">-</div>
       <div class="stat-label" style="font-size:11px;color:var(--text-3);font-weight:500">近 3 天</div>
     </div>
-    <div class="stat-card" style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:8px 14px;min-width:0">
+    <div class="stat-card" style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 16px;min-width:0">
       <div class="stat-num" style="font-size:20px;font-weight:700;color:var(--primary);line-height:1.2;font-variant-numeric:tabular-nums" id="sc7Day">-</div>
       <div class="stat-label" style="font-size:11px;color:var(--text-3);font-weight:500">近 7 天</div>
     </div>
-    <div class="stat-card" style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:8px 14px;min-width:0">
+    <div class="stat-card" style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 16px;min-width:0">
       <div class="stat-num" style="font-size:20px;font-weight:700;color:var(--primary);line-height:1.2;font-variant-numeric:tabular-nums" id="sc30Day">-</div>
       <div class="stat-label" style="font-size:11px;color:var(--text-3);font-weight:500">近 30 天</div>
     </div>
