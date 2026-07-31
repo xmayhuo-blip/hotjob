@@ -356,15 +356,15 @@ body {
 
 /* ===== Responsive ===== */
 @media (max-width: 1024px) {
-  .content-split { grid-template-columns: 1fr; }
-  .detail-panel { position: static; max-height: none; }
+  .content-split { grid-template-columns: 1fr; gap: 0; }
+  .detail-panel { position: static; max-height: none; border-radius: 0; border-left: none; border-right: none; }
 
 }
 @media (max-width: 768px) {
   .top-nav .nav-inner { padding: 0 16px; }
   .nav-tabs { position: static; transform: none; margin-left: auto; margin-right: 12px; }
   .update-time { display: none; }
-  .page { padding: 12px 10px 32px; }
+  .page { padding: 12px 0 32px; }
 
   
   .table-header { display: none; }
@@ -384,7 +384,8 @@ body {
   .rt-badge { display: inline-block; padding: 1px 5px; border-radius: 3px; font-size: 10px; font-weight: 600; background: var(--primary-light); color: var(--primary); }
   .rt-badge.campus { background: #FFF3E0; color: #E67E22; }
   .jr-row1 .days-badge { flex-shrink: 0; }
-  .jobs-table-area { max-height: 520px; overflow-y: auto; -webkit-overflow-scrolling: touch; border-bottom: none; }
+  .filter-bar { border-radius: 0; margin: 0; border-left: none; border-right: none; }
+  .jobs-table-area { max-height: 540px; overflow-y: auto; -webkit-overflow-scrolling: touch; border-bottom: none; border-radius: 0; border-left: none; border-right: none; }
   .jobs-table-area::-webkit-scrollbar { width: 3px; }
   .jobs-table-area::-webkit-scrollbar-thumb { background: #D0D8E8; border-radius: 2px; }
   .pagination { display: none; }
@@ -418,7 +419,7 @@ body {
 
 /* ===== Mobile bottom sheet ===== */
 @media (max-width: 768px) {
-  .jobs-table-area { max-height: 340px; }
+  .jobs-table-area { max-height: 540px; }
   .detail-panel.mobile-active {
     position: fixed; bottom: 0; left: 0; right: 0; top: auto;
     max-height: 75vh; z-index: 300; border-radius: 12px 12px 0 0;
