@@ -20,8 +20,18 @@ def fetch(keyword="", pages=6, size=100):
         if not posts:
             break
         for j in posts:
-            desc = j.get("Responsibility", "")
-            req = j.get("Requirement", "")
+            desc = j.get("Responsibility", "") or ""
+            # Try multiple requirement field names
+            req = (j.get("Requirement", "") or j.get("requirement", "")
+                   or j.get("Qualifications", "") or j.get("qualifications", "")
+                   or j.get("JobRequirement", "") or j.get("jobRequirement", "") or "")
+            # If no separate requirement field, try splitting Responsibility text
+            if not req.strip() and desc.strip():
+                import re as _re
+                _split = _re.split(r'(?:任职要求|岗位要求|职位要求|任职资格|我们需要你|我们希望你是|岗位要求|任职条件|应聘要求)\s*[:：]?', desc, maxsplit=1)
+                if len(_split) == 2 and _split[1].strip():
+                    desc = _split[0].strip()
+                    req = _split[1].strip()
             out.append({
                 "title": j.get("RecruitPostName", ""),
                 "company": "腾讯",
