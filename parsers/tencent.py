@@ -50,34 +50,36 @@ def fetch(keyword="", pages=6, size=100):
     return out
 
 def fetch_detail(post_id, language="zh-cn"):
-    """Fetch full job detail (including Requirement) for a specific Tencent post.
-    Tries QueryByPostId endpoint; falls back to paging the Query API."""
-    # Try the detail endpoint first
-    detail_urls = [
-        f"https://careers.tencent.com/tencentcareer/api/post/QueryByPostId?postId={post_id}&language={language}",
-        f"https://careers.tencent.com/tencentcareer/api/post/QueryByJobId?postId={post_id}&language={language}",
-    ]
-    for url in detail_urls:
-        try:
-            d = json.load(urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=15, context=CTX))
-            data = d.get("Data") or {}
-            if data.get("PostId"):
-                desc = data.get("Responsibility", "") or ""
-                req = (data.get("Requirement", "") or data.get("requirement", "")
-                       or data.get("Qualifications", "") or data.get("qualifications", "") or "")
-                return {
-                    "title": data.get("RecruitPostName", ""),
-                    "location": data.get("LocationName", ""),
-                    "dept": data.get("CategoryName", "") or data.get("BGName", ""),
-                    "date": data.get("LastUpdateTime", ""),
-                    "jd": "\n\n".join(x for x in [desc, req] if x),
-                    "responsibility": desc,
-                    "requirement": req,
-                    "url": data.get("PostURL", ""),
-                    "id": str(post_id),
-                }
-        except Exception:
-            continue
+    """Fetch full job detail (including Requirement) via Tencent detail API."""
+    import time as _t
+    detail_headers = {
+        **UA,
+        "Referer": "https://careers.tencent.com/jobdesc.html",
+        "Accept": "application/json, text/plain, */*",
+    }
+    url = (f"https://careers.tencent.com/tencentcareer/api/post/ByPostId"
+           f"?timestamp={int(_t.time())}&postId={post_id}&language={language}")
+    try:
+        d = json.load(urllib.request.urlopen(
+            urllib.request.Request(url, headers=detail_headers), timeout=15, context=CTX))
+        data = d.get("Data") or {}
+        if data.get("PostId"):
+            desc = data.get("Responsibility", "") or ""
+            req = (data.get("Requirement", "") or data.get("requirement", "")
+                   or data.get("Qualifications", "") or data.get("qualifications", "") or "")
+            return {
+                "title": data.get("RecruitPostName", "") or data.get("PostName", ""),
+                "location": data.get("LocationName", ""),
+                "dept": data.get("CategoryName", "") or data.get("BGName", ""),
+                "date": data.get("LastUpdateTime", ""),
+                "jd": "\n\n".join(x for x in [desc, req] if x),
+                "responsibility": desc,
+                "requirement": req,
+                "url": data.get("PostURL", ""),
+                "id": str(post_id),
+            }
+    except Exception:
+        pass
     return None
 
 if __name__ == "__main__":
