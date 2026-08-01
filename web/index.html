@@ -596,11 +596,6 @@ body {
       <select class="filter-select" id="citySelect" style="flex:1;min-width:90px;">
         <option value="">全部城市</option>
       </select>
-      <select class="filter-select" id="recruitTypeSelect" style="flex:1;min-width:90px;">
-        <option value="">全部类型</option>
-        <option value="社招">社招</option>
-        <option value="校招">校招</option>
-        </select>
       <span id="clearFilters" style="font-size:12px;color:var(--text-3);cursor:pointer;white-space:nowrap;padding:6px 8px;">清空筛选</span>
     </div>
   </div>
@@ -670,7 +665,6 @@ const state = {
   company: "",
   keyword: "",
   city: "",
-  recruitType: "",
   category: "",
   jobFunction: "",
   
@@ -931,9 +925,6 @@ function getFilteredJobs() {
   let filtered = [...state.jobs];
   if (state.city) {
     filtered = filtered.filter(j => (j.location || "").split(/[,，]/).some(c => c.trim() === state.city));
-  }
-  if (state.recruitType) {
-    filtered = filtered.filter(j => (j._recruit_type || "未知") === state.recruitType);
   }
   if (state.category) {
     filtered = filtered.filter(j => (j._category || "") === state.category);
@@ -1198,9 +1189,8 @@ function copyJobUrl(url, btn) {
 // ===== Event Listeners =====
 document.getElementById('companySelect').addEventListener('change', e => {
   state.company = e.target.value;
-  state.city = ""; state.recruitType = ""; state.category = "";
+  state.city = ""; state.category = "";
   document.getElementById('citySelect').value = "";
-  document.getElementById('recruitTypeSelect').value = "";
   document.getElementById('categorySelect').value = "";
   state.retryCount = 0; state._fetchRetries = 0; fetchData();
 });
@@ -1235,21 +1225,14 @@ document.getElementById('categorySelect').addEventListener('change', e => {
   renderTable(getFilteredJobs());
 });
 
-document.getElementById('recruitTypeSelect').addEventListener('change', e => {
-  state.recruitType = e.target.value;
-  state.page = 1;
-  renderTable(getFilteredJobs());
-});
-
 
 
 
 
 document.getElementById('clearFilters').addEventListener('click', () => {
-  state.keyword = ""; state.city = ""; state.recruitType = ""; state.category = ""; state.days = 3; state.company = "";
+  state.keyword = ""; state.city = ""; state.category = ""; state.days = 3; state.company = "";
   document.getElementById('keywordInput').value = "";
   document.getElementById('citySelect').value = "";
-  document.getElementById('recruitTypeSelect').value = "";
   document.getElementById('categorySelect').value = "";
   document.getElementById('daysSelect').value = "3";
   document.getElementById('companySelect').value = "";
