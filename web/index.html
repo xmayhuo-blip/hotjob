@@ -817,6 +817,8 @@ async function fetchData() {
     state.jobs = data.jobs || [];
     state._totalJobs = data.total || data.jobs.length || 0;
     state._truncated = data.truncated || false;
+    state._errors = data.errors || {};
+    state._loadingCids = data.loading || [];
     // Store per-company max counts from stats
     state._maxCounts = {};
     const _bcs = (data.stats || {}).by_company || {};
@@ -966,9 +968,19 @@ function renderTable(jobs) {
     `;
     return;
   }
-  area.innerHTML = `<div class="empty"><div class="icon empty-svg" style="background:var(--bg);width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#EF4E22" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></div><div class="title">没有找到匹配的岗位</div>
-      <p>部分公司（如 DeepSeek、智谱 AI）近期新帖较旧，默认仅显示 7 天内岗位时会为空。</p>
-      <p>建议把左上角「时间」筛选调长（如「近30天」或「全部时间」）；DeepSeek、智谱等需选「全部时间」才能看到。</p>
+  const _selErr = state.company && state._errors && state._errors[state.company];
+  const _selLoading = state.company && state._loadingCids && state._loadingCids.includes(state.company);
+  if (_selErr) {
+    // Distinguish: fetch completed but failed
+    area.innerHTML = `<div class="empty"><div class="icon">⚠️</div><div class="title">该公司数据获取失败</div><p>${escapeHtml(String(_selErr).slice(0, 80))}</p><p>请稍后重试，或前往该公司官网查看岗位。</p></div>`;
+    return;
+  }
+  if (_selLoading) {
+    area.innerHTML = `<div class="loading"><div class="spinner"></div><p>数据获取中，请稍候...</p></div>`;
+    return;
+  }
+  area.innerHTML = `<div class="empty"><div class="icon empty-svg" style="background:var(--bg);width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#EF4E22" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></div><div class="title">${state.company ? '该公司暂无在招岗位' : '当前时间范围内暂无岗位'}</div>
+      <p>可尝试把时间筛选调长，或清空筛选条件。</p>
       <button class="empty-action" id="extendDaysBtn">查看「全部时间」的岗位</button>
     </div>`;
     document.getElementById('extendDaysBtn')?.addEventListener('click', () => {
@@ -1016,7 +1028,7 @@ function renderTable(jobs) {
 
   area.innerHTML = `
     <div class="results-summary" style="display:flex;justify-content:space-between;align-items:center;">
-      <span class="results-count">共 <strong>${total}</strong> 个岗位</span>
+      <span class="results-count">共 <strong>${total}</strong> 个岗位${state._loadingCids && state._loadingCids.length ? ' <span style="font-size:11px;color:#E67E22;margin-left:6px;">' + state._loadingCids.length + ' 家数据获取中</span>' : ''}${state._errors && Object.keys(state._errors).length ? ' <span style="font-size:11px;color:#E74C3C;margin-left:6px;">' + Object.keys(state._errors).length + ' 家获取失败</span>' : ''}</span>
       ${state.company && COMPANIES[state.company] && data ? '<span style="font-size:11px;color:var(--text-3);white-space:nowrap;">' + (COMPANIES[state.company].name || state.company) + ' 最多抓取 ' + (state._maxCounts && state._maxCounts[state.company] ? state._maxCounts[state.company] : '') + ' 条</span>' : ''}
     </div>
     <div class="table-header">
