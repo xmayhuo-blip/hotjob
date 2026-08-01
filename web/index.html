@@ -7,16 +7,16 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🔥%3C/text%3E%3C/svg%3E">
 <style>
 :root {
-  --primary: #F97316;
-  --primary-light: #FFF7ED;
-  --primary-hover: #EA580C;
-  --bg: #FAFAF9;
+  --primary: #EF4E22;
+  --primary-light: #FFEDE5;
+  --primary-hover: #D64318;
+  --bg: #FAF9F7;
   --card: #FFFFFF;
-  --text: #1C1917;
-  --text-2: #78716C;
-  --text-3: #A8A29E;
-  --border: #E7E5E4;
-  --border-2: #D6D3D1;
+  --text: #111111;
+  --text-2: #555555;
+  --text-3: #999999;
+  --border: #EDE9E4;
+  --border-2: #DED8D1;
   --success: #10B981;
   --warning: #FF9500;
   --danger: #FF3B30;
@@ -72,17 +72,17 @@ body {
 
 /* ===== Filter Bar ===== */
 .filter-bar {
-  background: var(--card); border-radius: 10px;
-  padding: 14px 16px; margin-bottom: 20px; border: 1px solid var(--border);
-  box-shadow: var(--shadow);
-  display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+  background: var(--card); border-radius: 20px;
+  padding: 18px 20px; margin-bottom: 24px;
+  box-shadow: none;
+  display: flex; flex-direction: column; align-items: stretch; gap: 12px;
 }
 
 .search-box { position: relative;
 }
 .search-box input {
   width: 100%; padding: 9px 14px 9px 36px; border: 1px solid var(--border-2);
-  border-radius: 8px; font-size: 13px; outline: none;
+  border-radius: 14px; font-size: 13px; outline: none;
   background: var(--bg); color: var(--text); transition: all 0.15s;
 }
 .search-box input:focus { border-color: var(--primary); background: var(--card); box-shadow: 0 0 0 2px var(--primary-light); }
@@ -91,7 +91,7 @@ body {
   font-size: 14px; color: var(--text-3);
 }
 .filter-select {
-  padding: 9px 30px 9px 12px; border: 1px solid var(--border-2); border-radius: 8px;
+  padding: 9px 30px 9px 12px; border: 1px solid var(--border-2); border-radius: 14px;
   font-size: 13px; cursor: pointer; outline: none; background: var(--bg); color: var(--text-2);
   transition: all 0.15s; appearance: none; -webkit-appearance: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23A8A29E' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
@@ -106,6 +106,16 @@ body {
   box-shadow: var(--shadow); overflow: hidden;
 }
 @media (max-width: 768px) {
+  .brand-value { padding: 18px 16px 16px !important; }
+  .slogan-block > div:first-child { margin-bottom: 8px !important; }
+  .slogan-block > div:nth-child(2) { font-size: 24px !important; line-height: 1.3 !important; }
+  .metric-grid { max-width: 100% !important; min-width: 0 !important; }
+  .metric-grid > div:first-child { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)) !important; gap: 8px !important; }
+  .metric-card { padding: 10px 12px !important; border-radius: 14px !important; gap: 8px !important; }
+  .metric-card > span { width: 28px !important; height: 28px !important; border-radius: 8px !important; }
+  .metric-card svg { width: 16px !important; height: 16px !important; }
+  .metric-num { font-size: 18px !important; }
+  .metric-label { font-size: 10px !important; }
   .jobs-table-area { position: relative; }
   .jobs-table-area::after {
     content: ''; position: sticky; bottom: 0; display: block;
@@ -115,8 +125,8 @@ body {
   }
 }
 .results-summary {
-  padding: 12px 20px; border-bottom: 1px solid var(--border);
-  font-size: 13px; color: var(--text-2); background: #FAFBFC;
+  padding: 14px 20px;
+  font-size: 13px; color: var(--text-2);
   display: flex; align-items: center; gap: 8px;
 }
 .results-summary .results-count strong {
@@ -124,12 +134,12 @@ body {
 }
 .table-header {
   display: grid; grid-template-columns: minmax(0, 2fr) 110px 90px 110px 40px; align-items: center;
-  padding: 12px 20px; background: #FAFBFC; border-bottom: 1px solid var(--border);
+  padding: 0 20px 8px;
   font-size: 12px; color: var(--text-3); font-weight: 600;
 }
 .job-row {
   display: grid; grid-template-columns: minmax(0, 2fr) 110px 90px 110px 40px; align-items: center;
-  padding: 18px 20px; border-bottom: 1px solid var(--border);
+  padding: 16px 20px;
   cursor: pointer; transition: background 0.12s;
   border-left: 3px solid transparent;
 }
@@ -171,7 +181,7 @@ body {
 .days-badge::before {
   content: ""; width: 5px; height: 5px; border-radius: 50%; background: currentColor;
 }
-.days-badge.today { background: #ECFDF5; color: var(--success); }
+.days-badge.today { background: #FFEDE5; color: #D64318; }
 .days-badge.warn { background: #FFF8E1; color: var(--warning); }
 .days-badge.old { background: #FFEBEE; color: var(--danger); }
 .cell-arrow { color: var(--text-3); font-size: 12px; text-align: right; }
@@ -191,7 +201,7 @@ body {
 /* ===== Detail Panel ===== */
 .detail-panel {
   background: var(--card); border-radius: 10px; border: 1px solid var(--border);
-  box-shadow: 0 2px 12px rgba(0,0,0,0.05); position: sticky; top: 76px;
+  box-shadow: none; position: sticky; top: 76px;
   display: flex; flex-direction: column;
   max-height: calc(100vh - 92px);
 }
@@ -261,7 +271,9 @@ body {
   background: #fff8e1; color: #e65100; font-size: 13px; text-align: center;
   border: 1px solid #ffe0b2;
 }
-.empty .icon { font-size: 40px; margin-bottom: 12px; }
+.empty { padding: 72px 20px; }
+.empty .icon { font-size: 40px; margin-bottom: 12px; width: 56px; height: 56px; border-radius: 18px; display: flex; align-items: center; justify-content: center; margin-left: auto; margin-right: auto; background: var(--primary-light); }
+.empty .icon svg { display: block; }
 .empty .title { font-size: 14px; font-weight: 600; color: var(--text-2); margin-bottom: 4px; }
 .empty p { margin: 6px 0; line-height: 1.5; }
 .empty-action {
@@ -332,7 +344,7 @@ body {
 .result-grid .item .label { font-size: 12px; color: var(--text-3); margin-bottom: 6px; }
 .result-grid .item .value { font-size: 16px; font-weight: 700; color: var(--text); }
 .result-advice {
-  padding: 16px 20px; background: #FAFBFC; border-bottom: 1px solid var(--border);
+  padding: 0 20px 8px;;
 }
 .result-advice .title {
   display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 6px;
@@ -355,8 +367,14 @@ body {
 
 
 /* ===== Responsive ===== */
+.content-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 20px;
+  align-items: start;
+}
 @media (max-width: 1024px) {
-  .content-split { grid-template-columns: 1fr; gap: 12px; }
+  .content-split { grid-template-columns: 1fr; gap: 16px; }
   .detail-panel { position: static; max-height: none; border-radius: 0; border-left: none; border-right: none; }
 
 }
@@ -433,7 +451,7 @@ body {
 }
 
 .job-row { cursor: pointer; transition: background 0.12s; }
-.job-row:hover { background: #FAFBFC; }
+.job-row:hover { background: var(--bg); }
 .job-row.active { background: var(--primary-light); }
 @media (min-width: 769px) {
   .job-row { grid-template-rows: auto auto; }
@@ -455,8 +473,28 @@ body {
   padding: 8px 20px; text-align: center;
   font-size: 11px; color: var(--text-3);
   border-top: 1px solid var(--border);
-  background: #FAFBFC;
+  background: transparent;
 }
+
+/* Skeleton loading */
+.skeleton-loading { padding: 8px 0; }
+.skeleton-head { padding: 12px 20px; }
+.skeleton-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 20px; border-top: 1px solid var(--border);
+}
+.skeleton-line {
+  height: 14px; border-radius: 8px;
+  background: linear-gradient(90deg, var(--bg) 25%, #F1ECE6 50%, var(--bg) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.6s infinite;
+}
+.skeleton-line.w70 { width: 70%; } .skeleton-line.w60 { width: 60%; } .skeleton-line.w75 { width: 75%; } .skeleton-line.w55 { width: 55%; } .skeleton-line.w65 { width: 65%; }
+.skeleton-line.w30 { width: 30%; } .skeleton-line.w25 { width: 25%; } .skeleton-line.w35 { width: 35%; } .skeleton-line.w20 { width: 20%; }
+.skeleton-line.w40 { width: 40%; height: 16px; }
+@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) { .skeleton-line { animation: none; } }
+
 </style>
 </head>
 <body>
@@ -468,88 +506,120 @@ body {
       <button class="nav-tab active" data-tab="latest">最新岗位</button>
       <button class="nav-tab" data-tab="link">链接查时间</button>
     </nav>
-    <div class="update-time" id="updateTime">更新于 --:--</div>
   </div>
 </header>
+<div class="nav-update-bar" style="background:var(--card);padding:6px 0;">
+  <div style="max-width:1200px;margin:0 auto;padding:0 16px;text-align:right;font-size:11px;color:var(--text-3);">
+    <span id="updateTime">更新于 --:--</span>
+  </div>
+</div>
 <div class="detail-backdrop" id="detailBackdrop"></div>
 
 <main class="page">
 
 <!-- ===== Latest Jobs Tab ===== -->
 <section id="latestTab" class="tab-panel active">
-<div class="hero-band" style="padding:18px 16px 12px;background:var(--card);border-bottom:1px solid var(--border);">
-  <div style="max-width:1200px;margin:0 auto;display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;">
-    <span style="font-size:22px;font-weight:800;color:var(--text);letter-spacing:0;">只看<span style="color:var(--primary);font-weight:900;">新鲜岗位</span></span>
-    <span style="font-size:14px;color:var(--text-3);"><s style="color:#bbb;text-decoration:line-through;">僵尸JD</s> 请走开</span>
+<div class="brand-value" style="padding:32px 24px 28px;background:linear-gradient(180deg,#FFFFFF 0%,#FFF0E8 100%);">
+  <div style="max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:48px;flex-wrap:wrap;">
+    <div class="slogan-block" style="flex:1;min-width:300px;">
+      <div style="font-size:34px;font-weight:800;color:var(--text);line-height:1.3;letter-spacing:0;">
+        只看<span style="color:var(--primary);font-weight:900;">新鲜岗位</span>
+      </div>
+    </div>
+    <div class="metric-grid" id="statCards" style="display:block;flex:1;min-width:0;max-width:480px;">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;">
+        <div class="metric-card" style="background:#FFFFFF;border-radius:20px;padding:16px 18px;pointer-events:none;cursor:default;display:flex;align-items:center;gap:12px;box-shadow:0 2px 10px rgba(239,78,34,0.08);">
+          <span style="width:38px;height:38px;border-radius:11px;background:#FFEDE5;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#EF4E22" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/><path d="M8 14h.01M12 14h.01M16 14h.01"/></svg>
+          </span>
+          <div style="min-width:0;">
+            <div class="metric-num" style="font-size:26px;font-weight:800;color:var(--text);line-height:1.1;font-variant-numeric:tabular-nums" id="scToday">-</div>
+            <div class="metric-label" style="font-size:12px;color:var(--text-3);font-weight:500;margin-top:4px;">今日新增</div>
+          </div>
+        </div>
+        <div class="metric-card" style="background:#FFFFFF;border-radius:20px;padding:16px 18px;pointer-events:none;cursor:default;display:flex;align-items:center;gap:12px;box-shadow:0 2px 10px rgba(239,78,34,0.08);">
+          <span style="width:38px;height:38px;border-radius:11px;background:#FFEDE5;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#EF4E22" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+          </span>
+          <div style="min-width:0;">
+            <div class="metric-num" style="font-size:26px;font-weight:800;color:var(--text);line-height:1.1;font-variant-numeric:tabular-nums" id="sc3Day">-</div>
+            <div class="metric-label" style="font-size:12px;color:var(--text-3);font-weight:500;margin-top:4px;">近 3 天</div>
+          </div>
+        </div>
+        <div class="metric-card" style="background:#FFFFFF;border-radius:20px;padding:16px 18px;pointer-events:none;cursor:default;display:flex;align-items:center;gap:12px;box-shadow:0 2px 10px rgba(239,78,34,0.08);">
+          <span style="width:38px;height:38px;border-radius:11px;background:#FFEDE5;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#EF4E22" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M7 13l4-4 3 3 5-5"/></svg>
+          </span>
+          <div style="min-width:0;">
+            <div class="metric-num" style="font-size:26px;font-weight:800;color:var(--text);line-height:1.1;font-variant-numeric:tabular-nums" id="sc7Day">-</div>
+            <div class="metric-label" style="font-size:12px;color:var(--text-3);font-weight:500;margin-top:4px;">近 7 天</div>
+          </div>
+        </div>
+        <div class="metric-card" style="background:#FFFFFF;border-radius:20px;padding:16px 18px;pointer-events:none;cursor:default;display:flex;align-items:center;gap:12px;box-shadow:0 2px 10px rgba(239,78,34,0.08);">
+          <span style="width:38px;height:38px;border-radius:11px;background:#FFEDE5;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#EF4E22" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M8 2v4M16 2v4M3 10h18"/></svg>
+          </span>
+          <div style="min-width:0;">
+            <div class="metric-num" style="font-size:26px;font-weight:800;color:var(--text);line-height:1.1;font-variant-numeric:tabular-nums" id="sc30Day">-</div>
+            <div class="metric-label" style="font-size:12px;color:var(--text-3);font-weight:500;margin-top:4px;">近 30 天</div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
-<div class="stats-cards" id="statCards" style="display:none;padding:12px 0 16px;background:var(--card);border-bottom:1px solid var(--border);">
-  <div style="max-width:1200px;margin:0 auto;">
-    <div id="statUpdateTime" style="font-size:11px;color:var(--text-3);margin-bottom:8px;">数据更新中...</div>
-    <div style="display:flex;gap:12px;">
-    <div class="stat-card" style="flex:1;background:var(--primary-light);border:1px solid var(--border);border-radius:8px;padding:10px 16px;min-width:0;box-shadow:inset 0 1px 2px rgba(0,0,0,0.02)">
-      <div class="stat-num" style="font-size:20px;font-weight:700;color:var(--primary);line-height:1.2;font-variant-numeric:tabular-nums" id="scToday">-</div>
-      <div class="stat-label" style="font-size:11px;color:var(--text-3);font-weight:500">今日新增</div>
+<div class="filter-bar" id="filterBar">
+    <div class="filter-search-row" style="display:flex;gap:8px;width:100%;align-items:center;">
+      <div class="search-box" style="flex:1;min-width:0;">
+        <span class="icon" style="display:flex;align-items:center;justify-content:center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></span>
+        <input type="text" id="keywordInput" placeholder="搜索公司、岗位或关键词" style="width:100%;">
+      </div>
     </div>
-    <div class="stat-card" style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 16px;min-width:0">
-      <div class="stat-num" style="font-size:20px;font-weight:700;color:var(--primary);line-height:1.2;font-variant-numeric:tabular-nums" id="sc3Day">-</div>
-      <div class="stat-label" style="font-size:11px;color:var(--text-3);font-weight:500">近 3 天</div>
+    <div class="filter-select-row" style="display:flex;gap:8px;width:100%;align-items:center;flex-wrap:wrap;">
+      <select class="filter-select" id="companySelect" style="flex:1;min-width:110px;">
+        <option value="">全部公司</option>
+      </select>
+      <select class="filter-select" id="daysSelect" style="flex:1;min-width:90px;">
+        <option value="0">全部时间</option>
+        <option value="1">今日</option>
+        <option value="3">近3天</option>
+        <option value="7" selected>近7天</option>
+        <option value="14">近14天</option>
+        <option value="30">近30天</option>
+      </select>
+      <select class="filter-select" id="categorySelect" style="flex:1;min-width:90px;">
+        <option value="">全部职类</option>
+      </select>
+      <select class="filter-select" id="citySelect" style="flex:1;min-width:90px;">
+        <option value="">全部城市</option>
+      </select>
+      <select class="filter-select" id="recruitTypeSelect" style="flex:1;min-width:90px;">
+        <option value="">全部类型</option>
+        <option value="社招">社招</option>
+        <option value="校招">校招</option>
+        <option value="实习">实习</option>
+      </select>
+      <span id="clearFilters" style="font-size:12px;color:var(--text-3);cursor:pointer;white-space:nowrap;padding:6px 8px;">清空筛选</span>
     </div>
-    <div class="stat-card" style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 16px;min-width:0">
-      <div class="stat-num" style="font-size:20px;font-weight:700;color:var(--primary);line-height:1.2;font-variant-numeric:tabular-nums" id="sc7Day">-</div>
-      <div class="stat-label" style="font-size:11px;color:var(--text-3);font-weight:500">近 7 天</div>
-    </div>
-    <div class="stat-card" style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 16px;min-width:0">
-      <div class="stat-num" style="font-size:20px;font-weight:700;color:var(--primary);line-height:1.2;font-variant-numeric:tabular-nums" id="sc30Day">-</div>
-      <div class="stat-label" style="font-size:11px;color:var(--text-3);font-weight:500">近 30 天</div>
-    </div>
-  </div>
-</div>
-
-
-
-<div class="filter-bar" id="filterBar" style="position:relative">
-    <div class="search-box">
-      <span class="icon">🔍</span>
-      <input type="text" id="keywordInput" placeholder="搜索公司、岗位或关键词…">
-    </div>
-    <select class="filter-select" id="companySelect">
-      <option value="">全部公司</option>
-    </select>
-    <select class="filter-select" id="daysSelect">
-      <option value="0">全部时间</option>
-      <option value="1">今日</option>
-      <option value="3">近3天</option>
-      <option value="7" selected>近7天</option>
-      <option value="14">近14天</option>
-      <option value="30">近30天</option>
-    </select>
-    <select class="filter-select" id="categorySelect">
-      <option value="">全部职类</option>
-    </select>
-    <select class="filter-select" id="citySelect">
-      <option value="">全部城市</option>
-    </select>
-    <select class="filter-select" id="recruitTypeSelect">
-      <option value="">全部类型</option>
-      <option value="社招">社招</option>
-      <option value="校招">校招</option>
-      <option value="实习">实习</option>
-    </select>
-    <button class="filter-select" id="clearFilters" style="background:var(--bg);cursor:pointer;color:var(--text-3);border-color:var(--border-2);padding:8px 12px;flex-shrink:0">清空筛选</button>
   </div>
 
   <div id="limitNotice" class="loading-banner" style="display:none;margin:0 0 12px;background:#E3F2FD;color:#1565C0;border-color:#90CAF9;"></div>
   <div class="content-split">
         <div class="jobs-table-area" id="jobsTableArea">
-      <div class="loading">
-        <div class="spinner"></div>
-        <p>正在获取岗位数据，请稍候...</p>
+      <div class="skeleton-loading" aria-label="加载中">
+        <div class="skeleton-head">
+          <div class="skeleton-line w40"></div>
+        </div>
+        <div class="skeleton-row"><div class="skeleton-line w70"></div><div class="skeleton-line w30"></div></div>
+        <div class="skeleton-row"><div class="skeleton-line w60"></div><div class="skeleton-line w25"></div></div>
+        <div class="skeleton-row"><div class="skeleton-line w75"></div><div class="skeleton-line w35"></div></div>
+        <div class="skeleton-row"><div class="skeleton-line w55"></div><div class="skeleton-line w20"></div></div>
+        <div class="skeleton-row"><div class="skeleton-line w65"></div><div class="skeleton-line w30"></div></div>
       </div>
     </div>
     <aside class="detail-panel" id="detailPanel">
       <div class="detail-empty">
-        <div class="icon">📄</div>
+        <div class="icon" style="background:var(--bg);"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#EF4E22" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="14" rx="3"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></div>
         <div class="title">选择一个岗位查看 JD</div>
         <div class="sub">岗位职责、任职要求和真实发布时间会在这里展示</div>
       </div>
@@ -813,7 +883,7 @@ async function fetchData() {
       return;
     }
   } catch (e) {
-    area.innerHTML = `<div class="empty"><div class="icon">⚠️</div><div class="title">获取失败，请稍后重试</div></div>`;
+    area.innerHTML = `<div class="empty"><div class="icon empty-svg" style="background:var(--bg);width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#EF4E22" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></div><div class="title">数据还在路上</div><p>稍等一下，会自动重试</p></div>`;
   }
   state.loading = false;
   
@@ -898,9 +968,7 @@ function renderTable(jobs) {
     `;
     return;
   }
-  area.innerHTML = `<div class="empty">
-      <div class="icon">📋</div>
-      <div class="title">没有找到匹配的岗位</div>
+  area.innerHTML = `<div class="empty"><div class="icon empty-svg" style="background:var(--bg);width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#EF4E22" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></div><div class="title">没有找到匹配的岗位</div>
       <p>部分公司（如 DeepSeek、智谱 AI）近期新帖较旧，默认仅显示 7 天内岗位时会为空。</p>
       <p>建议把左上角「时间」筛选调长（如「近30天」或「全部时间」）；DeepSeek、智谱等需选「全部时间」才能看到。</p>
       <button class="empty-action" id="extendDaysBtn">查看「全部时间」的岗位</button>
@@ -991,7 +1059,7 @@ async function renderDetail() {
     document.getElementById('detailBackdrop').classList.remove('active');
     panel.innerHTML = `
       <div class="detail-empty">
-        <div class="icon">📄</div>
+        <div class="icon" style="background:var(--bg);"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#EF4E22" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="14" rx="3"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></div>
         <div class="title">选择一个岗位查看 JD</div>
         <div class="sub">岗位职责、任职要求和真实发布时间会在这里展示</div>
       </div>`;
@@ -1147,10 +1215,18 @@ document.getElementById('companySelect').addEventListener('change', e => {
   state.retryCount = 0; state._fetchRetries = 0; fetchData();
 });
 
+document.getElementById('keywordInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    state.keyword = e.target.value.trim();
+    state.retryCount = 0; state._fetchRetries = 0; fetchData();
+  }
+});
 document.getElementById('keywordInput').addEventListener('input', debounce(e => {
   state.keyword = e.target.value;
   state.retryCount = 0; state._fetchRetries = 0; fetchData();
 }, 500));
+
 
 document.getElementById('daysSelect').addEventListener('change', e => {
   state.days = parseInt(e.target.value);
@@ -1246,7 +1322,7 @@ async function lookupLink() {
         </div>
       </div>`;
   } catch (e) {
-    resultEl.innerHTML = `<div class="empty"><div class="icon">⚠️</div><div class="title">解析失败，请确认链接正确</div></div>`;
+    resultEl.innerHTML = `<div class="empty"><div class="icon" style="background:var(--bg);"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#EF4E22" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg></div><div class="title">解析失败，请确认链接正确</div></div>`;
   }
   btn.disabled = false; btn.textContent = '解析链接';
 }
