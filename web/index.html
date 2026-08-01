@@ -584,7 +584,8 @@ body {
         <option value="0">全部时间</option>
         <option value="1">今日</option>
         <option value="3">近3天</option>
-        <option value="7" selected>近7天</option>
+        <option value="3" selected>近3天</option>
+      <option value="7">近7天</option>
         <option value="14">近14天</option>
         <option value="30">近30天</option>
       </select>
@@ -646,6 +647,7 @@ body {
 
 <footer class="page-footer">
   <p>hotjob · 数据直接来自各企业 ATS 系统 · 仅供求职参考</p>
+  <p style="font-size:11px;color:var(--text-3);margin-top:6px;">数据为定时全量抓取，非实时推送；部分公司受 API 限制仅展示部分岗位</p>
   <p id="pageViews" style="margin-top:8px;font-size:11px;color:#aaa"></p>
 </footer>
 
@@ -671,7 +673,7 @@ const state = {
   category: "",
   jobFunction: "",
   
-  days: 7,
+  days: 3,
   jobs: [],
   allCities: [],
   loading: false,
@@ -1029,7 +1031,7 @@ function renderTable(jobs) {
       <button id="prevPage" ${state.page <= 1 ? 'disabled' : ''}>上一页</button>
       <button id="nextPage" ${state.page >= totalPages ? 'disabled' : ''}>下一页</button>
     </div>
-    ${state._truncated ? '<div class="trunc-footer">已展示最新 ' + state.jobs.length + ' 条 · 共 ' + (state._totalJobs || state.jobs.length) + ' 条</div>' : ''}`;
+    ${state._truncated ? '<div class="trunc-footer">已展示最新 ' + state.jobs.length + ' 条 · 共 ' + (state._totalJobs || state.jobs.length) + ' 条 · 受接口限制仅展示部分</div>' : ''}`;
 
   area.querySelectorAll('.job-row').forEach((row, idx) => {
     row.addEventListener('click', () => {
@@ -1125,7 +1127,7 @@ async function renderDetail() {
 
           // Case B: only duty provided -> show duty + note
           if (duty.length > 5) {
-            return sec('岗位职责', duty) + '<h4>岗位要求</h4><p class="placeholder">该岗位详情未提供岗位要求，建议前往官网查看完整信息。</p>';
+            return sec('岗位职责', duty) + '<h4>岗位要求</h4><p class="placeholder">该岗位详情未获取到，建议前往官网查看完整信息。</p>';
           }
 
           // Case C: only req provided -> show req
@@ -1243,12 +1245,12 @@ document.getElementById('recruitTypeSelect').addEventListener('change', e => {
 
 
 document.getElementById('clearFilters').addEventListener('click', () => {
-  state.keyword = ""; state.city = ""; state.recruitType = ""; state.category = ""; state.category = ""; state.days = 7; state.company = "";
+  state.keyword = ""; state.city = ""; state.recruitType = ""; state.category = ""; state.days = 3; state.company = "";
   document.getElementById('keywordInput').value = "";
   document.getElementById('citySelect').value = "";
   document.getElementById('recruitTypeSelect').value = "";
   document.getElementById('categorySelect').value = "";
-  document.getElementById('daysSelect').value = "7";
+  document.getElementById('daysSelect').value = "3";
   document.getElementById('companySelect').value = "";
   state.retryCount = 0; state._fetchRetries = 0; fetchData();
 });

@@ -171,6 +171,7 @@ _FAIL_LOCK = threading.Lock()
 # ===== 职类归并映射 =====
 _DEPT_CAT = [
     ("运营", [r'运营']),
+    ("策划", [r'策划']),
     ("产品经理", [r'产品']),
     ("技术-开发", [r'后端', r'前端', r'客户端', r'研发', r'开发', r'工程', r'全栈', r'ios', r'android', r'服务端', r'server', r'技术类', r'技术-']),
     ("技术-算法", [r'算法', r'算法类', r'nlp', r'推荐', r'搜索', r'广告', r'cv', r'大模型', r'llm']),
@@ -187,6 +188,7 @@ _DEPT_CAT = [
 
 _TITLE_CAT = [
     ("运营", [r'运营']),
+    ("策划", [r'策划']),
     ("产品经理", [r'产品']),
     ("技术-算法", [r'算法', r'ai', r'ml', r'nlp', r'cv', r'大模型', r'llm', r'推荐', r'搜索']),
     ("技术-开发", [r'前端', r'后端', r'开发', r'工程师', r'架构', r'go', r'java', r'python', r'c\+\+', r'全栈', r'ios', r'android', r'客户端', r'服务端']),
@@ -204,15 +206,18 @@ _TITLE_CAT = [
 def _classify_category(dept, title):
     dept = (dept or "").strip().lower()
     title = (title or "").strip().lower()
-    if dept:
-        for cat, patterns in _DEPT_CAT:
-            for p in patterns:
-                if re.search(p, dept):
-                    return cat
+    # 1. Title-specific operations/planning keywords take priority
+    #    (prevents "商业化运营" being misclassified via generic "产品" dept)
     if title:
         for cat, patterns in _TITLE_CAT:
             for p in patterns:
                 if re.search(p, title):
+                    return cat
+    # 2. Dept-based mapping (only if title didn't match)
+    if dept:
+        for cat, patterns in _DEPT_CAT:
+            for p in patterns:
+                if re.search(p, dept):
                     return cat
     return "其他"
 
