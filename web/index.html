@@ -106,17 +106,18 @@ body {
   box-shadow: var(--shadow); overflow: hidden;
 }
 @media (max-width: 768px) {
-  .brand-value { padding: 12px 12px 10px !important; flex-direction: column !important; align-items: stretch !important; gap: 10px !important; background: #FAFBFC !important; }
-  .slogan-block { min-width: 0 !important; }
-  .slogan-block > div:first-child { margin-bottom: 2px !important; }
-  .slogan-block > div:nth-child(2) { font-size: 18px !important; line-height: 1.3 !important; }
+  .brand-value { padding: 6px 12px 4px !important; flex-direction: row !important; align-items: center !important; gap: 8px !important; background: #FAFBFC !important; }
+  .slogan-block { min-width: 0 !important; flex: 1 !important; }
+  .slogan-block > div:first-child { margin-bottom: 0 !important; }
+  .slogan-block > div:nth-child(2) { font-size: 13px !important; line-height: 1.2 !important; }
   .metric-grid { max-width: 100% !important; min-width: 0 !important; }
-  .metric-grid > div:first-child { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)) !important; gap: 8px !important; }
-  .metric-card { padding: 10px 12px !important; border-radius: 14px !important; gap: 8px !important; }
-  .metric-card > span { width: 28px !important; height: 28px !important; border-radius: 8px !important; }
-  .metric-card svg { width: 16px !important; height: 16px !important; }
-  .metric-num { font-size: 18px !important; }
-  .metric-label { font-size: 10px !important; }
+  .metric-grid > div:first-child { grid-template-columns: repeat(4, 1fr) !important; gap: 4px !important; }
+  .metric-card { padding: 4px 6px !important; border-radius: 8px !important; gap: 4px !important; }
+  .metric-card > span { width: 18px !important; height: 18px !important; border-radius: 5px !important; display: none !important; }
+  .metric-card svg { display: none !important; }
+  .metric-num { font-size: 14px !important; }
+  .metric-label { font-size: 9px !important; }
+  #statUpdateTime { font-size: 10px !important; margin-bottom: 2px !important; }
   .jobs-table-area { position: relative; }
   .jobs-table-area::after {
     content: ''; position: sticky; bottom: 0; display: block;
