@@ -642,9 +642,7 @@ body {
 </main>
 
 <footer class="page-footer">
-  <p>hotjob · 数据直接来自各企业 ATS 系统 · 仅供求职参考</p>
-  <p style="font-size:11px;color:var(--text-3);margin-top:6px;">数据为定时全量抓取，非实时推送；部分公司受 API 限制仅展示部分岗位</p>
-  <p id="pageViews" style="margin-top:8px;font-size:11px;color:#aaa"></p>
+  <p id="pageViews" style="font-size:11px;color:#aaa"></p>
 </footer>
 
 <script>
@@ -819,6 +817,12 @@ async function fetchData() {
     state.jobs = data.jobs || [];
     state._totalJobs = data.total || data.jobs.length || 0;
     state._truncated = data.truncated || false;
+    // Store per-company max counts from stats
+    state._maxCounts = {};
+    const _bcs = (data.stats || {}).by_company || {};
+    for (const _cid in _bcs) {
+      if (_bcs[_cid] && _bcs[_cid].max_count) state._maxCounts[_cid] = _bcs[_cid].max_count;
+    }
     state.allCities = extractCities(state.jobs);
     refreshCitySelect();
     // Update localStorage cache
@@ -1011,8 +1015,9 @@ function renderTable(jobs) {
   }).join("");
 
   area.innerHTML = `
-    <div class="results-summary">
+    <div class="results-summary" style="display:flex;justify-content:space-between;align-items:center;">
       <span class="results-count">共 <strong>${total}</strong> 个岗位</span>
+      ${state.company && COMPANIES[state.company] && data ? '<span style="font-size:11px;color:var(--text-3);white-space:nowrap;">' + (COMPANIES[state.company].name || state.company) + ' 最多抓取 ' + (state._maxCounts && state._maxCounts[state.company] ? state._maxCounts[state.company] : '') + ' 条</span>' : ''}
     </div>
     <div class="table-header">
       <div>职位信息</div><div>地点</div><div>招聘类型</div><div>发布时间</div><div></div>

@@ -44,25 +44,25 @@ def fetch(keyword="", pages=6, size=100, recruit_type="social"):
                     j_type = "校招"
                 else:
                     j_type = "社招"
-            # If no separate requirement field, try splitting Responsibility text
-            if not req.strip() and desc.strip():
-                _d, _r = split_jd(desc)
-                if _r.strip():
-                    desc = _d
-                    req = _r
-            out.append({
-                "title": j.get("RecruitPostName", ""),
-                "company": "腾讯",
-                "type": j_type,
-                "location": j.get("LocationName", ""),
-                "dept": j.get("CategoryName", "") or j.get("BGName", ""),
-                "date": j.get("LastUpdateTime", ""),
-                "jd": "\n\n".join(x for x in [desc, req] if x),
-                "responsibility": desc,
-                "requirement": req,
-                "url": j.get("PostURL", ""),
-                "id": str(j.get("PostId", "")),
-            })
+                # If no separate requirement field, try splitting Responsibility text
+                if not req.strip() and desc.strip():
+                    _d, _r = split_jd(desc)
+                    if _r.strip():
+                        desc = _d
+                        req = _r
+                out.append({
+                    "title": j.get("RecruitPostName", ""),
+                    "company": "腾讯",
+                    "type": j_type,
+                    "location": j.get("LocationName", ""),
+                    "dept": j.get("CategoryName", "") or j.get("BGName", ""),
+                    "date": j.get("LastUpdateTime", ""),
+                    "jd": "\n\n".join(x for x in [desc, req] if x),
+                    "responsibility": desc,
+                    "requirement": req,
+                    "url": j.get("PostURL", ""),
+                    "id": str(j.get("PostId", "")),
+                })
         if len(posts) < size or len(out) >= ((d.get("Data") or {}).get("Count") or 0):
             break
     return out
