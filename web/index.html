@@ -451,6 +451,12 @@ body {
   .jr-arrow { display: none; }
 }
 /* ===== More filters collapsible (mobile) ===== */
+.trunc-footer {
+  padding: 8px 20px; text-align: center;
+  font-size: 11px; color: var(--text-3);
+  border-top: 1px solid var(--border);
+  background: #FAFBFC;
+}
 </style>
 </head>
 <body>
@@ -535,8 +541,7 @@ body {
 
   <div id="limitNotice" class="loading-banner" style="display:none;margin:0 0 12px;background:#E3F2FD;color:#1565C0;border-color:#90CAF9;"></div>
   <div class="content-split">
-    <div id="truncNotice" class="loading-banner" style="display:none;margin:0 0 12px;background:#FFF8E1;color:#8D6E63;border-color:#FFE0B2;">仅显示最新 800 条，可在筛选后查看更早岗位</div>
-    <div class="jobs-table-area" id="jobsTableArea">
+        <div class="jobs-table-area" id="jobsTableArea">
       <div class="loading">
         <div class="spinner"></div>
         <p>正在获取岗位数据，请稍候...</p>
@@ -745,6 +750,7 @@ async function fetchData() {
     const res = await fetch(`/api/jobs?${params}`);
     const data = await res.json();
     state.jobs = data.jobs || [];
+    state._totalJobs = data.total || data.jobs.length || 0;
     state._truncated = data.truncated || false;
     state.allCities = extractCities(state.jobs);
     refreshCitySelect();
@@ -883,12 +889,6 @@ function populateCategories(jobs) {
 }
 
 function renderTable(jobs) {
-  // Show truncation notice
-  const _tn = document.getElementById('truncNotice');
-  if (_tn) {
-    if (state._truncated) { _tn.style.display = 'block'; }
-    else { _tn.style.display = 'none'; }
-  }
   populateCategories(jobs);
   const area = document.getElementById('jobsTableArea');
   if (!jobs || jobs.length === 0) {
@@ -960,7 +960,8 @@ function renderTable(jobs) {
       <span>共 ${total} 个岗位，第 ${state.page}/${totalPages} 页</span>
       <button id="prevPage" ${state.page <= 1 ? 'disabled' : ''}>上一页</button>
       <button id="nextPage" ${state.page >= totalPages ? 'disabled' : ''}>下一页</button>
-    </div>`;
+    </div>
+    ${state._truncated ? '<div class="trunc-footer">已展示最新 ' + state.jobs.length + ' 条 · 共 ' + (state._totalJobs || state.jobs.length) + ' 条</div>' : ''}`;
 
   area.querySelectorAll('.job-row').forEach((row, idx) => {
     row.addEventListener('click', () => {
