@@ -983,7 +983,7 @@ function renderTable(jobs) {
 }
 
 // ===== Detail Panel =====
-function renderDetail() {
+async function renderDetail() {
   const panel = document.getElementById('detailPanel');
   let j = state.selectedJob;
   if (!j) {
@@ -996,6 +996,19 @@ function renderDetail() {
         <div class="sub">岗位职责、任职要求和真实发布时间会在这里展示</div>
       </div>`;
     return;
+  }
+  // If requirement missing and company is Tencent, fetch full detail
+  if (!(j.requirement || '').trim() && j._company_id === 'tencent' && j.id) {
+    try {
+      const _dr = await fetch('/api/job-detail?cid=' + j._company_id + '&id=' + j.id);
+      const _dd = await _dr.json();
+      if (_dd && !_dd.error) {
+        if ((_dd.requirement || '').trim()) {
+          state.selectedJob = Object.assign({}, j, _dd);
+          j = state.selectedJob;
+        }
+      }
+    } catch(_e) {}
   }
   const days = j._days_ago;
   const dateStr = j.date || "未知";
