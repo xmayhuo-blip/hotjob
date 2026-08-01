@@ -744,6 +744,13 @@ class Handler(http.server.BaseHTTPRequestHandler):
                             if str(_ej.get("id", "")) == _djobid:
                                 _found = _ej
                                 break
+                # Tencent: try detail API for full JD including Requirement
+                if _dcid == "tencent" and not _found:
+                    try:
+                        from parsers.tencent import fetch_detail as _tc_detail
+                        _found = _tc_detail(_djobid)
+                    except Exception:
+                        _found = None
             if _found:
                 self._send(200, _found)
             else:
