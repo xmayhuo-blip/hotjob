@@ -68,7 +68,7 @@ import importlib
 # 10 家 MVP 公司配置
 # (module_name, fetch_func_name, args_tuple)
 PARSER_CONFIG = {
-    "tencent":    ("parsers.tencent",    "fetch",   ()),
+    "tencent":    ("parsers.tencent",    "fetch",   ("", 6, 100, "all")),
     "bytedance":  ("parsers.bytedance",   "fetch",   ()),
     "alibaba":    ("parsers.alibaba",    "fetch",   ("", 1, 500, "talent.alibaba.com")),
     "highflyer":  ("parsers.moka",        "fetch",   ("high-flyer", 140576, "DeepSeek")),

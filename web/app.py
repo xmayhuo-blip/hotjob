@@ -750,12 +750,15 @@ class Handler(http.server.BaseHTTPRequestHandler):
                                 _found = _ej
                                 break
                 # Tencent: try detail API for full JD including Requirement
-                if _dcid == "tencent" and not _found:
+                # Tencent: ALWAYS try detail API for full JD (cache lacks Requirement)
+                if _dcid == "tencent":
                     try:
                         from parsers.tencent import fetch_detail as _tc_detail
-                        _found = _tc_detail(_djobid)
+                        _detail = _tc_detail(_djobid)
+                        if _detail:
+                            _found = _detail
                     except Exception:
-                        _found = None
+                        pass
             if _found:
                 self._send(200, _found)
             else:
