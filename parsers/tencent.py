@@ -50,7 +50,7 @@ def fetch(keyword="", pages=6, size=100):
     return out
 
 def fetch_detail(post_id, language="zh-cn"):
-    """Fetch full job detail (including Requirement) via Tencent detail API."""
+    """Fetch full job detail via Tencent ByPostId API."""
     import time as _t
     detail_headers = {
         **UA,
@@ -63,10 +63,10 @@ def fetch_detail(post_id, language="zh-cn"):
         d = json.load(urllib.request.urlopen(
             urllib.request.Request(url, headers=detail_headers), timeout=15, context=CTX))
         data = d.get("Data") or {}
-        if data.get("PostId"):
-            desc = data.get("Responsibility", "") or ""
-            req = (data.get("Requirement", "") or data.get("requirement", "")
-                   or data.get("Qualifications", "") or data.get("qualifications", "") or "")
+        desc = data.get("Responsibility", "") or ""
+        req = (data.get("Requirement", "") or data.get("requirement", "")
+               or data.get("Qualifications", "") or data.get("qualifications", "") or "")
+        if desc or req:
             return {
                 "title": data.get("RecruitPostName", "") or data.get("PostName", ""),
                 "location": data.get("LocationName", ""),
@@ -78,8 +78,8 @@ def fetch_detail(post_id, language="zh-cn"):
                 "url": data.get("PostURL", ""),
                 "id": str(post_id),
             }
-    except Exception:
-        pass
+    except Exception as _e:
+        sys.stderr.write(f"[tencent] detail API error: {_e}\n")
     return None
 
 if __name__ == "__main__":

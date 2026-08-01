@@ -1065,13 +1065,15 @@ async function renderDetail() {
       </div>`;
     return;
   }
-  // If requirement missing and company is Tencent, fetch full detail
+  // Fetch full detail when list data lacks requirement or combined jd
   if (!(j.requirement || '').trim() && j._company_id === 'tencent' && j.id) {
     try {
       const _dr = await fetch('/api/job-detail?cid=' + j._company_id + '&id=' + j.id);
       const _dd = await _dr.json();
       if (_dd && !_dd.error) {
-        if ((_dd.requirement || '').trim()) {
+        // Merge if detail has any new content (requirement or combined jd)
+        const _hasNew = (_dd.requirement || '').trim() || (_dd.jd || '').trim() !== (j.jd || '').trim();
+        if (_hasNew) {
           state.selectedJob = Object.assign({}, j, _dd);
           j = state.selectedJob;
         }
@@ -1110,41 +1112,28 @@ async function renderDetail() {
           const req = (j.requirement || '').trim();
           const jd = (j.jd || j.detail || '').trim();
 
-          // Helper: render a titled section
           const sec = (title, text) => {
             const lines = String(text).split(/\n+/).map(l => l.trim()).filter(Boolean);
             if (!lines.length) return '';
             return '<h4>' + title + '</h4>' + lines.map(l => '<p>' + escapeHtml(l) + '</p>').join('');
           };
 
-          // Case 1: both sections present -> show both
+          // Case A: both sections explicitly provided -> two blocks
           if (duty.length > 5 && req.length > 5) {
             return sec('岗位职责', duty) + sec('岗位要求', req);
           }
-          // Case 1b: duty only -> show duty + placeholder for requirement
-          if (duty.length > 5 && !req.length) {
+
+          // Case B: only duty provided -> show duty + note
+          if (duty.length > 5) {
             return sec('岗位职责', duty) + '<h4>岗位要求</h4><p class="placeholder">该岗位详情未提供岗位要求，建议前往官网查看完整信息。</p>';
           }
 
-          // Case 2: only duty present, but jd is longer (requirement embedded in jd)
-          if (duty.length > 5 && jd.length > duty.length + 10) {
-            const idx = jd.indexOf(duty);
-            const rest = (idx >= 0 ? jd.substring(idx + duty.length) : '').trim();
-            if (rest.length > 5) {
-              return sec('岗位职责', duty) + sec('岗位要求', rest);
-            }
+          // Case C: only req provided -> show req
+          if (req.length > 5) {
+            return sec('岗位要求', req);
           }
 
-          // Case 3: only req present but jd longer (duty embedded)
-          if (req.length > 5 && jd.length > req.length + 10) {
-            const idx = jd.indexOf(req);
-            const before = (idx > 0 ? jd.substring(0, idx) : '').trim();
-            if (before.length > 5) {
-              return sec('岗位职责', before) + sec('岗位要求', req);
-            }
-          }
-
-          // Case 4: combined jd -> try header-based splitting
+          // Case D: combined jd -> split by explicit section headers only
           if (jd.length > 10) {
             const sections = splitJdSections(jd);
             if (sections && sections.length) {
@@ -1153,16 +1142,14 @@ async function renderDetail() {
                 s.lines.map(l => '<p>' + escapeHtml(l) + '</p>').join('')
               ).join('');
             }
+            // No headers found: show all as 岗位描述 (do NOT guess)
+            return sec('岗位描述', jd);
           }
 
-          // Case 5: show whatever we have under 岗位描述
-          if (duty.length > 5) return sec('岗位描述', duty);
-          if (req.length > 5) return sec('岗位描述', req);
-          if (jd.length > 5) return sec('岗位描述', jd);
           return '<p class="placeholder">该岗位未提供详细描述，建议前往官网查看完整信息。</p>';
         })()
       }
-    </div>
+    </div>    </div>
     <div class="detail-footer">
       ${j.url && j.url !== '#' ? `
         <div class="detail-actions">
