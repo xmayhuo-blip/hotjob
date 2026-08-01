@@ -15,7 +15,9 @@ def _init():
     with _get_conn() as conn:
         conn.execute("CREATE TABLE IF NOT EXISTS pageviews (id INTEGER PRIMARY KEY AUTOINCREMENT, path TEXT NOT NULL DEFAULT '/', visited_at REAL NOT NULL)")
         conn.execute("CREATE TABLE IF NOT EXISTS stats_meta (key TEXT PRIMARY KEY, value INTEGER NOT NULL DEFAULT 0)")
-        conn.execute("INSERT OR IGNORE INTO stats_meta (key, value) VALUES ('total_views', 0)")
+        conn.execute("INSERT OR IGNORE INTO stats_meta (key, value) VALUES ('total_views', 1000)")
+        # Bump existing counters below 1000 up to 1000
+        conn.execute("UPDATE stats_meta SET value = 1000 WHERE key = 'total_views' AND value < 1000")
         conn.commit()
 def record_view(path="/"):
     with _lock:
