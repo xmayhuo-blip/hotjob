@@ -976,15 +976,19 @@ class Handler(http.server.BaseHTTPRequestHandler):
                        or kw in j.get("description", "").lower()
                        or kw in j.get("dept", "").lower()]
 
-        # ===== Compute stats from FULL dataset (before days filter) =====
-        today = datetime.now().date()
+        # Apply days filter FIRST so stats match the returned list
+        if days > 0:
+            all_jobs = [j for j in all_jobs if j["_days_ago"] < days]
+
+        # ===== Compute stats from the FILTERED dataset (matches list) =====
         stat_today = sum(1 for j in all_jobs if j["_days_ago"] == 0)
         stat_3day = sum(1 for j in all_jobs if j["_days_ago"] < 3)
         stat_7day = sum(1 for j in all_jobs if j["_days_ago"] < 7)
         stat_30day = sum(1 for j in all_jobs if j["_days_ago"] < 30)
 
-        if days > 0:
-            all_jobs = [j for j in all_jobs if j["_days_ago"] < days]
+        # Update company counts to match filtered list
+        for _cid in company_stats:
+            company_stats[_cid]["count"] = sum(1 for j in all_jobs if j.get("_company_id") == _cid)
 
         all_jobs.sort(key=lambda x: x.get("_days_ago", 9999))
         _truncated = len(all_jobs) > 800
