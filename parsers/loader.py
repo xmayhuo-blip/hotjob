@@ -135,6 +135,40 @@ def fetch_company(company_id, keyword=""):
         return []
 
 
+def fetch_company_with_meta(company_id, keyword=""):
+    """Fetch jobs plus parser metadata (e.g. Byte scan stats).
+
+    Returns:
+        (list[dict], dict): jobs and metadata; generic parsers return {}.
+    """
+    cfg = PARSER_CONFIG.get(company_id)
+    if not cfg:
+        raise ValueError(f"[loader] 未知公司: {company_id}，可选: {list(PARSER_CONFIG.keys())}")
+
+    domain = _get_domain(company_id)
+    if domain:
+        _rate_limit_domain(domain)
+    os.environ["HOTJOB_UA"] = _random_ua()
+
+    modname, fn_name, base_args = cfg
+    try:
+        mod = _ensure_module(modname)
+        fn = getattr(mod, fn_name)
+        args = list(base_args)
+        if keyword:
+            if args:
+                args[0] = keyword
+            else:
+                args.append(keyword)
+        if hasattr(mod, "fetch_with_meta"):
+            jobs, meta = mod.fetch_with_meta(*args)
+            return list(jobs), meta
+        return list(fn(*args)), {}
+    except Exception as e:
+        sys.stderr.write(f"[loader] {company_id} error: {type(e).__name__}: {e}\n")
+        return [], {}
+
+
 def fetch_all(keyword="", max_concurrent=3):
     """并行抓取所有 MVP 公司。
 

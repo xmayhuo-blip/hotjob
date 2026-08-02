@@ -43,7 +43,7 @@ _CACHE_PATH = "/tmp/hotjob_cache.json"
 # so that poisoned cache data (e.g., 1 job for Alibaba due to old dedup bug)
 # is rejected on load, not silently served to users.
 MIN_JOBS_THRESHOLD = {
-    "tencent": 10, "bytedance": 500, "alibaba": 10, "highflyer": 1, "zhipu": 1,
+    "tencent": 10, "bytedance": 300, "alibaba": 10, "highflyer": 1, "zhipu": 1,
     "moonshot": 1, "minimax": 1, "kuaishou": 5, "lilith": 1, "kurogame": 1,
 }
 
@@ -54,7 +54,10 @@ def _save_cache():
         for k, v in _cache.items():
             if v.get("failed") or not v.get("data"):
                 continue
-            data[k] = {"data": v["data"]}
+            cache_entry = {"data": v["data"]}
+            if v.get("meta"):
+                cache_entry["meta"] = v["meta"]
+            data[k] = cache_entry
     if data:
         try:
             with open(_CACHE_PATH, "w") as f:
@@ -97,6 +100,7 @@ def _load_cache():
                     "time": now - age,
                     "data": jobs,
                     "failed": False,
+                    "meta": entry.get("meta", {}),
                 }
                 loaded += 1
     sys.stderr.write(
@@ -142,7 +146,7 @@ def _rate_limit_ok(client_ip):
 def _build_companies():
     return {
         "tencent":    {"name": "腾讯",     "color": "#00A4FF", "url": "https://careers.tencent.com/", "recruit_type": "社招", "max_count": 600},
-        "bytedance":  {"name": "字节跳动",  "color": "#2B2B2B", "url": "https://jobs.bytedance.com/", "recruit_type": "社招", "max_count": 600},
+        "bytedance":  {"name": "字节跳动",  "color": "#2B2B2B", "url": "https://jobs.bytedance.com/", "recruit_type": "社招", "max_count": 1000},
         "alibaba":    {"name": "阿里巴巴",  "color": "#FF6A00", "url": "https://talent.alibaba.com/", "recruit_type": "社招", "max_count": 500},
         "highflyer":  {"name": "DeepSeek", "color": "#6C5CE7", "url": "https://app.mokahr.com/social-recruitment/high-flyer/140576", "recruit_type": "社招", "max_count": 500},
         "zhipu":      {"name": "智谱AI",   "color": "#00B894", "url": "https://zhipu-ai.jobs.feishu.cn/", "recruit_type": "社招", "max_count": 400},
@@ -255,7 +259,10 @@ def fetch_company(company_id, force_refresh=False):
 
     # 3. Fetch via direct import (no subprocess)
     try:
-        jobs = prs_loader.fetch_company(company_id)
+        jobs, meta = prs_loader.fetch_company_with_meta(company_id)
+        if not meta.get("ok", True):
+            raise RuntimeError(
+                f"fetch incomplete: page_failures={meta.get('page_failures')}")
         min_ok = MIN_JOBS_THRESHOLD.get(company_id, 1)
         # Guard: reject suspiciously low data (INCLUDING 0 jobs)
         if len(jobs) < min_ok:
@@ -273,10 +280,10 @@ def fetch_company(company_id, force_refresh=False):
                             f"[{company_id}] stale cache also bad "
                             f"({len(stale_jobs)} jobs), not serving it\n")
                 # Cache suspicious data with failed=True (expires via FAIL_CACHE_TTL)
-                _cache[company_id] = {"time": time.time(), "data": jobs, "failed": True}
+                _cache[company_id] = {"time": time.time(), "data": jobs, "failed": True, "meta": meta}
             return company_id, jobs, cached
         with _cache_lock:
-            _cache[company_id] = {"time": time.time(), "data": jobs}
+            _cache[company_id] = {"time": time.time(), "data": jobs, "meta": meta}
         return company_id, jobs, cached
     except Exception as e:
         sys.stderr.write(f"[{company_id}] FETCH FAILED: {e}, using stale cache\n")
@@ -285,7 +292,7 @@ def fetch_company(company_id, force_refresh=False):
                 entry = _cache[company_id]
                 if time.time() - entry["time"] < STALE_TTL:
                     return company_id, entry["data"], True
-            _cache[company_id] = {"time": time.time(), "data": [], "failed": True}
+            _cache[company_id] = {"time": time.time(), "data": [], "failed": True, "meta": {}}
         return company_id, [], cached
     finally:
         if not force_refresh:
@@ -773,7 +780,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
                     entry = _cache.get(cid)
                     if entry:
                         data = entry.get("data", [])
-                        debug[cid] = {"age": round(time.time() - entry.get("time", 0), 1), "count": len(data), "failed": entry.get("failed", False), "has_jd": bool(data and bool(data[0].get("jd"))) if data else False, "sample_ids": [str(j.get("id","")) for j in data[:3]]}
+                        debug[cid] = {"age": round(time.time() - entry.get("time", 0), 1), "count": len(data), "failed": entry.get("failed", False), "has_jd": bool(data and bool(data[0].get("jd"))) if data else False, "sample_ids": [str(j.get("id","")) for j in data[:3]], "meta": entry.get("meta", {})}
             self._send(200, {"cache": debug})
             return
         
@@ -861,6 +868,18 @@ class Handler(http.server.BaseHTTPRequestHandler):
             days = int(days_str)
         except ValueError:
             days = 0
+        city = qs.get("city", [""])[0].strip()
+        category = qs.get("category", [""])[0].strip()
+
+        def _int_param(name, default, lo, hi):
+            try:
+                val = int(qs.get(name, [str(default)])[0])
+            except (TypeError, ValueError):
+                return default
+            return max(lo, min(hi, val))
+
+        page = _int_param("page", 1, 1, 10 ** 9)
+        page_size = _int_param("page_size", 100, 1, 200)
 
         if companies_param == "all":
             company_ids = list(COMPANIES.keys())[:PREWARM_LIMIT]
@@ -868,7 +887,12 @@ class Handler(http.server.BaseHTTPRequestHandler):
             company_ids = [c.strip() for c in companies_param.split(",") if c.strip() in COMPANIES]
 
         if not company_ids:
-            self._send(200, {"jobs": [], "stats": {}, "companies": {}})
+            self._send(200, {
+                "jobs": [], "total": 0, "page": page, "page_size": page_size,
+                "total_pages": 1, "stats": {}, "companies": {}, "errors": {},
+                "loading": [], "last_refresh": _last_refresh,
+                "fetch_time": 0, "cached": True, "truncated": False,
+            })
             return
 
         t0 = time.time()
@@ -976,44 +1000,65 @@ class Handler(http.server.BaseHTTPRequestHandler):
                        or kw in j.get("description", "").lower()
                        or kw in j.get("dept", "").lower()]
 
-        # Apply days filter FIRST so stats match the returned list
+        # Apply filters BEFORE stats so every count matches the list dataset.
         if days > 0:
             all_jobs = [j for j in all_jobs if j["_days_ago"] < days]
 
-        # ===== Compute stats from the FILTERED dataset (matches list) =====
+        city_set = set()
+        for j in all_jobs:
+            for c in re.split(r"[,，]", str(j.get("location", "") or "")):
+                c = c.strip()
+                if c and c != "未知" and len(c) <= 10:
+                    city_set.add(c)
+        all_cities = sorted(city_set)
+        all_categories = sorted({j.get("_category") for j in all_jobs if j.get("_category")})
+
+        if city:
+            all_jobs = [j for j in all_jobs if any(
+                c.strip() == city for c in re.split(r"[,，]", str(j.get("location", "") or "")))]
+        if category:
+            all_jobs = [j for j in all_jobs if j.get("_category") == category]
+
         stat_today = sum(1 for j in all_jobs if j["_days_ago"] == 0)
         stat_3day = sum(1 for j in all_jobs if j["_days_ago"] < 3)
         stat_7day = sum(1 for j in all_jobs if j["_days_ago"] < 7)
         stat_30day = sum(1 for j in all_jobs if j["_days_ago"] < 30)
 
-        # Update company counts to match filtered list
         for _cid in company_stats:
             company_stats[_cid]["count"] = sum(1 for j in all_jobs if j.get("_company_id") == _cid)
 
         all_jobs.sort(key=lambda x: x.get("_days_ago", 9999))
-        _truncated = len(all_jobs) > 800
-        if _truncated:
-            all_jobs = all_jobs[:800]
-
-
+        total = len(all_jobs)
+        total_pages = (total + page_size - 1) // page_size if total else 1
+        if page > total_pages:
+            page = total_pages
+        if page < 1:
+            page = 1
+        start = (page - 1) * page_size
+        page_jobs = all_jobs[start:start + page_size]
 
         self._send(200, {
-            "jobs": all_jobs,
-            "total": len(all_jobs),
+            "jobs": page_jobs,
+            "total": total,
+            "page": page,
+            "page_size": page_size,
+            "total_pages": total_pages,
             "stats": {
-                "total": len(all_jobs),
+                "total": total,
                 "today": stat_today,
                 "d3": stat_3day,
                 "d7": stat_7day,
                 "d30": stat_30day,
                 "by_company": company_stats,
+                "cities": all_cities,
+                "categories": all_categories,
             },
             "errors": errors,
             "loading": loading,
             "last_refresh": _last_refresh,
             "fetch_time": round(time.time() - t0, 1),
             "cached": all(f"{cid}" in _cache for cid in company_ids),
-            "truncated": _truncated,
+            "truncated": False,
         })
 
     def log_message(self, fmt, *args):

@@ -199,6 +199,7 @@ body {
 }
 .pagination button:hover:not(:disabled) { border-color: var(--primary); color: var(--primary); }
 .pagination button:disabled { opacity: 0.4; cursor: not-allowed; }
+.pagination-actions { display: flex; gap: 8px; }
 
 /* ===== Detail Panel ===== */
 .detail-panel {
@@ -408,7 +409,14 @@ body {
   .jobs-table-area { max-height: 540px; overflow-y: auto; -webkit-overflow-scrolling: touch; border-bottom: none; border-radius: 0; border-left: none; border-right: none; margin-bottom: 12px; }
   .jobs-table-area::-webkit-scrollbar { width: 3px; }
   .jobs-table-area::-webkit-scrollbar-thumb { background: #D0D8E8; border-radius: 2px; }
-  .pagination { display: none; }
+  .pagination {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+  }
   .link-hero h1 { font-size: 26px; }
   .result-grid { grid-template-columns: 1fr; }
   .result-grid .item:first-child { border-right: none; border-bottom: 1px solid var(--border); }
@@ -673,7 +681,10 @@ const state = {
   _dataReceived: false,
   retryCount: 0,
   page: 1,
-  pageSize: 200,
+  pageSize: 100,
+  totalPages: 1,
+  _totalJobs: 0,
+  _categories: [],
   selectedJob: null,
 };
 
@@ -747,20 +758,6 @@ async function initCompanySelect() {
   }
 }
 
-// ===== Cities =====
-function extractCities(jobs) {
-  const citySet = new Set();
-  for (const j of jobs) {
-    const loc = j.location || "";
-    if (!loc) continue;
-    for (let c of loc.split(/[,，]/)) {
-      c = c.trim();
-      if (c && c !== "未知" && c.length <= 10) citySet.add(c);
-    }
-  }
-  return [...citySet].sort((a, b) => a.localeCompare(b, "zh-CN"));
-}
-
 function refreshCitySelect() {
   const sel = document.getElementById('citySelect');
   const current = state.city;
@@ -783,27 +780,49 @@ function debounce(fn, delay) {
   };
 }
 
-async function fetchData() {
+function cacheKey() {
+  return ['hotjob_cache', state.company || 'all', state.keyword || '', state.days,
+          state.city || '', state.category || '', state.page, state.pageSize].join('|');
+}
+
+function applyJobsData(data) {
+  state.jobs = data.jobs || [];
+  state._dataReceived = true;
+  state._totalJobs = data.total || 0;
+  state.page = data.page || state.page;
+  state.totalPages = data.total_pages || Math.max(1, Math.ceil((state._totalJobs || 0) / state.pageSize));
+  state._errors = data.errors || {};
+  state._loadingCids = data.loading || [];
+  // Store per-company max counts from stats
+  state._maxCounts = {};
+  const _bcs = (data.stats || {}).by_company || {};
+  for (const _cid in _bcs) {
+    if (_bcs[_cid] && _bcs[_cid].max_count) state._maxCounts[_cid] = _bcs[_cid].max_count;
+  }
+  state.allCities = (data.stats || {}).cities || [];
+  state._categories = (data.stats || {}).categories || [];
+  refreshCitySelect();
+}
+
+async function fetchData(opts = {}) {
   if (state.loading) return;
-  // Try localStorage cache for instant render
-  const _c = localStorage.getItem('hotjob_cache');
+  if (opts.page != null) state.page = opts.page;
+  state.selectedJob = null; renderDetail();
+  const _ck = cacheKey();
+  const _c = localStorage.getItem(_ck);
   if (_c && !state._cached_shown) {
     try {
       const _p = JSON.parse(_c);
-      if (Date.now() - _p.ts < 600000 && _p.data && _p.data.jobs) {
+      if (Date.now() - _p.ts < 600000 && _p.data && Array.isArray(_p.data.jobs)) {
         state._cached_shown = true;
-        state.jobs = _p.data.jobs || [];
-        state.allCities = extractCities(state.jobs);
-        refreshCitySelect();
+        applyJobsData(_p.data);
         renderStats(_p.data);
-        renderTable(getFilteredJobs());
-        /* trust-line removed */
+        renderTable(state.jobs);
       }
     } catch(e) {}
   }
   state.loading = true;
   state._dataReceived = false;
-  state.page = 1; state.selectedJob = null; renderDetail();
   const area = document.getElementById('jobsTableArea');
   const compName = state.company ? COMPANIES[state.company].name : '全部公司';
   area.innerHTML = `<div class="loading"><div class="spinner"></div><p>正在获取 ${compName} 岗位数据...</p></div>`;
@@ -812,31 +831,22 @@ async function fetchData() {
     companies: state.company || "all",
     keyword: state.keyword,
     days: state.days,
+    city: state.city,
+    category: state.category,
+    page: state.page,
+    page_size: state.pageSize,
   });
   try {
     const res = await fetch(`/api/jobs?${params}`);
     const data = await res.json();
-    state.jobs = data.jobs || [];
-    state._dataReceived = true;
-    state._totalJobs = data.total || data.jobs.length || 0;
-    state._truncated = data.truncated || false;
-    state._errors = data.errors || {};
-    state._loadingCids = data.loading || [];
-    // Store per-company max counts from stats
-    state._maxCounts = {};
-    const _bcs = (data.stats || {}).by_company || {};
-    for (const _cid in _bcs) {
-      if (_bcs[_cid] && _bcs[_cid].max_count) state._maxCounts[_cid] = _bcs[_cid].max_count;
-    }
-    state.allCities = extractCities(state.jobs);
-    refreshCitySelect();
-    // Update localStorage cache
-    try { localStorage.setItem('hotjob_cache', JSON.stringify({ts: Date.now(), data})); } catch(e) {}
-    if (state._cached_shown && data.jobs && data.jobs.length > 0) state._cached_shown = false;
+    state._cached_shown = false;
+    applyJobsData(data);
+    // Update localStorage cache keyed by filters + page
+    try { localStorage.setItem(_ck, JSON.stringify({ts: Date.now(), data})); } catch(e) {}
     // Reset retry counter on successful data load
     if (data.jobs && data.jobs.length > 0) state._fetchRetries = 0;
     renderStats(data);
-    renderTable(getFilteredJobs());
+    renderTable(state.jobs);
     const refreshTs = data.last_refresh || 0;
     const tl = document.getElementById('trustLine') || document.getElementById('statCards');
     const ss = (data.stats || {});
@@ -862,7 +872,11 @@ async function fetchData() {
       if (_ti) _ti.textContent = '数据获取中...';
     }
     // Keep updateTime for backward compat
-    document.getElementById('updateTime').textContent = refreshTs ? `更新于 ${new Date(refreshTs * 1000).toLocaleTimeString('zh-CN')}` : '更新于 --:--';
+    const _dt = refreshTs ? new Date(refreshTs * 1000) : null;
+    const _pad2 = n => String(n).padStart(2, '0');
+    document.getElementById('updateTime').textContent = _dt
+      ? `更新于 ${_dt.getFullYear()}-${_pad2(_dt.getMonth() + 1)}-${_pad2(_dt.getDate())} ${_pad2(_dt.getHours())}:${_pad2(_dt.getMinutes())}:${_pad2(_dt.getSeconds())}`
+      : '更新于 --:--';
 
     // Show failed companies (non-blocking, no auto-refresh)
     const failedNames = Object.keys(data.errors || {}).map(c => {
@@ -929,24 +943,10 @@ function renderStats(data) {
   }
 }
 
-// ===== Filtering =====
-function getFilteredJobs() {
-  let filtered = [...state.jobs];
-  if (state.city) {
-    filtered = filtered.filter(j => (j.location || "").split(/[,，]/).some(c => c.trim() === state.city));
-  }
-  if (state.category) {
-    filtered = filtered.filter(j => (j._category || "") === state.category);
-  }
-  return filtered;
-}
-
- 
-
 // ===== Table =====
-function populateCategories(jobs) {
+function populateCategories(categories) {
   const cats = new Set();
-  for (const j of jobs) { if (j._category) cats.add(j._category); }
+  for (const c of (categories || [])) { if (c) cats.add(c); }
   const sel = document.getElementById('categorySelect');
   if (!sel) return;
   const cur = sel.value;
@@ -962,7 +962,7 @@ function populateCategories(jobs) {
 }
 
 function renderTable(jobs) {
-  populateCategories(jobs);
+  populateCategories(state._categories);
   const area = document.getElementById('jobsTableArea');
   if (!jobs || jobs.length === 0) {
     if (!state._dataReceived) {
@@ -988,15 +988,14 @@ function renderTable(jobs) {
     document.getElementById('extendDaysBtn')?.addEventListener('click', () => {
       state.days = 0;
       document.getElementById('daysSelect').value = "0";
+      state.page = 1;
       state.retryCount = 0; state._fetchRetries = 0; fetchData();
     });
     return;
   }
-  const total = jobs.length;
-  const totalPages = Math.max(1, Math.ceil(total / state.pageSize));
-  if (state.page > totalPages) state.page = 1;
-  const start = (state.page - 1) * state.pageSize;
-  const pageJobs = jobs.slice(start, start + state.pageSize);
+  const total = state._totalJobs || jobs.length;
+  const totalPages = state.totalPages || Math.max(1, Math.ceil(total / state.pageSize));
+  const pageJobs = jobs;
 
   const rows = pageJobs.map(j => {
     const days = j._days_ago;
@@ -1038,11 +1037,13 @@ function renderTable(jobs) {
     </div>
     ${rows}
     <div class="pagination">
-      <span>共 ${total} 个岗位，第 ${state.page}/${totalPages} 页</span>
-      <button id="prevPage" ${state.page <= 1 ? 'disabled' : ''}>上一页</button>
-      <button id="nextPage" ${state.page >= totalPages ? 'disabled' : ''}>下一页</button>
+      <span class="page-info">本页 <strong>${jobs.length}</strong> 条 / 第 ${state.page}/${totalPages} 页 · 共 ${total} 个岗位</span>
+      <div class="pagination-actions">
+        <button id="prevPage" ${state.page <= 1 ? 'disabled' : ''}>上一页</button>
+        <button id="nextPage" ${state.page >= totalPages ? 'disabled' : ''}>下一页</button>
+      </div>
     </div>
-    ${state._truncated ? '<div class="trunc-footer">已展示最新 ' + state.jobs.length + ' 条 · 共 ' + (state._totalJobs || state.jobs.length) + ' 条 · 受接口限制仅展示部分</div>' : ''}`;
+    `;
 
   area.querySelectorAll('.job-row').forEach((row, idx) => {
     row.addEventListener('click', () => {
@@ -1059,8 +1060,8 @@ function renderTable(jobs) {
       renderDetail();
     });
   });
-  document.getElementById('prevPage')?.addEventListener('click', () => { if (state.page > 1) { state.page--; renderTable(jobs); } });
-  document.getElementById('nextPage')?.addEventListener('click', () => { if (state.page < totalPages) { state.page++; renderTable(jobs); } });
+  document.getElementById('prevPage')?.addEventListener('click', () => { if (state.page > 1) fetchData({page: state.page - 1}); });
+  document.getElementById('nextPage')?.addEventListener('click', () => { if (state.page < totalPages) fetchData({page: state.page + 1}); });
 }
 
 // ===== Detail Panel =====
@@ -1182,14 +1183,14 @@ async function renderDetail() {
     state.selectedJob = null;
     panel.classList.remove('mobile-active');
     bp.classList.remove('active');
-    renderTable(getFilteredJobs());
+    renderTable(state.jobs);
     renderDetail();
   });
   bp.onclick = function() {
     state.selectedJob = null;
     panel.classList.remove('mobile-active');
     bp.classList.remove('active');
-    renderTable(getFilteredJobs());
+    renderTable(state.jobs);
     renderDetail();
   };
 }
@@ -1211,6 +1212,7 @@ document.getElementById('companySelect').addEventListener('change', e => {
   state.city = ""; state.category = "";
   document.getElementById('citySelect').value = "";
   document.getElementById('categorySelect').value = "";
+  state.page = 1;
   state.retryCount = 0; state._fetchRetries = 0; fetchData();
 });
 
@@ -1218,30 +1220,33 @@ document.getElementById('keywordInput').addEventListener('keydown', e => {
   if (e.key === 'Enter') {
     e.preventDefault();
     state.keyword = e.target.value.trim();
+    state.page = 1;
     state.retryCount = 0; state._fetchRetries = 0; fetchData();
   }
 });
 document.getElementById('keywordInput').addEventListener('input', debounce(e => {
   state.keyword = e.target.value;
+  state.page = 1;
   state.retryCount = 0; state._fetchRetries = 0; fetchData();
 }, 500));
 
 
 document.getElementById('daysSelect').addEventListener('change', e => {
   state.days = parseInt(e.target.value);
+  state.page = 1;
   state.retryCount = 0; state._fetchRetries = 0; fetchData();
 });
 
 document.getElementById('citySelect').addEventListener('change', e => {
   state.city = e.target.value;
-  state.page = 1;
-  renderTable(getFilteredJobs());
+  state.page = 1; state.retryCount = 0; state._fetchRetries = 0;
+  fetchData();
 });
 
 document.getElementById('categorySelect').addEventListener('change', e => {
   state.category = e.target.value;
-  state.page = 1;
-  renderTable(getFilteredJobs());
+  state.page = 1; state.retryCount = 0; state._fetchRetries = 0;
+  fetchData();
 });
 
 
@@ -1255,6 +1260,7 @@ document.getElementById('clearFilters').addEventListener('click', () => {
   document.getElementById('categorySelect').value = "";
   document.getElementById('daysSelect').value = "3";
   document.getElementById('companySelect').value = "";
+  state.page = 1;
   state.retryCount = 0; state._fetchRetries = 0; fetchData();
 });
 
