@@ -1031,7 +1031,7 @@ function renderTable(jobs) {
   area.innerHTML = `
     <div class="results-summary" style="display:flex;justify-content:space-between;align-items:center;">
       <span class="results-count">共 <strong>${total}</strong> 个岗位${state._loadingCids && state._loadingCids.length ? ' <span style="font-size:11px;color:#E67E22;margin-left:6px;">' + state._loadingCids.length + ' 家数据获取中</span>' : ''}${state._errors && Object.keys(state._errors).length ? ' <span style="font-size:11px;color:#E74C3C;margin-left:6px;">' + Object.keys(state._errors).length + ' 家获取失败</span>' : ''}</span>
-      ${state.company && COMPANIES[state.company] && data ? '<span style="font-size:11px;color:var(--text-3);white-space:nowrap;">' + (COMPANIES[state.company].name || state.company) + ' 最多抓取 ' + (state._maxCounts && state._maxCounts[state.company] ? state._maxCounts[state.company] : '') + ' 条</span>' : ''}
+      ${state.company && COMPANIES[state.company] && state._maxCounts && state._maxCounts[state.company] ? '<span style="font-size:11px;color:var(--text-3);white-space:nowrap;">' + (COMPANIES[state.company].name || state.company) + ' 最多抓取 ' + state._maxCounts[state.company] + ' 条</span>' : ''}
     </div>
     <div class="table-header">
       <div>职位信息</div><div>地点</div><div>招聘类型</div><div>发布时间</div><div></div>
