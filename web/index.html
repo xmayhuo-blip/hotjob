@@ -107,16 +107,18 @@ body {
 }
 @media (max-width: 768px) {
   .brand-value { padding: 6px 12px 4px !important; flex-direction: row !important; align-items: center !important; gap: 8px !important; background: #FAFBFC !important; }
-  .slogan-block { min-width: 0 !important; flex: 1 !important; }
+  .brand-value > div { gap: 8px !important; flex-wrap: nowrap !important; }
+  .slogan-block { min-width: 0 !important; flex: 0 0 25% !important; }
   .slogan-block > div:first-child { margin-bottom: 0 !important; }
   .slogan-block > div:nth-child(2) { font-size: 12px !important; line-height: 1.2 !important; }
-  .metric-grid { max-width: 100% !important; min-width: 0 !important; }
-  .metric-grid > div:first-child { grid-template-columns: repeat(4, 1fr) !important; gap: 4px !important; }
-  .metric-card { padding: 4px 6px !important; border-radius: 8px !important; gap: 4px !important; }
+  .metric-grid { flex: 1 1 75% !important; max-width: 75% !important; min-width: 0 !important; }
+  .metric-grid > div:first-child { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 8px !important; }
+  .metric-card { padding: 8px 6px !important; border-radius: 8px !important; gap: 2px !important; flex-direction: column !important; align-items: center !important; justify-content: center !important; text-align: center !important; }
   .metric-card > span { width: 18px !important; height: 18px !important; border-radius: 5px !important; display: none !important; }
+  .metric-card > div { display: flex !important; flex-direction: column !important; align-items: center !important; justify-content: center !important; min-width: 0 !important; }
   .metric-card svg { display: none !important; }
-  .metric-num { font-size: 14px !important; }
-  .metric-label { font-size: 9px !important; }
+  .metric-num { font-size: 16px !important; line-height: 1.2 !important; }
+  .metric-label { font-size: 10px !important; margin-top: 2px !important; white-space: nowrap !important; }
   #statUpdateTime { font-size: 10px !important; margin-bottom: 2px !important; }
   .jobs-table-area { position: relative; }
   .jobs-table-area::after {
@@ -592,7 +594,6 @@ body {
       <select class="filter-select" id="daysSelect" style="flex:1;min-width:90px;">
         <option value="0">全部时间</option>
         <option value="1">今日</option>
-        <option value="3">近3天</option>
         <option value="3" selected>近3天</option>
       <option value="7">近7天</option>
         <option value="14">近14天</option>

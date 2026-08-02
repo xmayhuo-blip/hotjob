@@ -399,6 +399,26 @@ def days_ago(dt):
         return 9999
     return (datetime.now() - dt).days
 
+
+def _global_time_stats():
+    """Metric cards are global: count all cached jobs regardless of filters."""
+    today = d3 = d7 = d30 = 0
+    with _cache_lock:
+        for cid, entry in _cache.items():
+            if cid not in COMPANIES:
+                continue
+            for j in (entry.get("data") or []):
+                days = days_ago(parse_date(j.get("date", "")))
+                if days == 0:
+                    today += 1
+                if days < 3:
+                    d3 += 1
+                if days < 7:
+                    d7 += 1
+                if days < 30:
+                    d30 += 1
+    return today, d3, d7, d30
+
 # ===== URL → company / job id parsing for link lookup =====
 URL_PATTERNS = [
     # (company_id, domain_keyword, [id_regex_patterns])
@@ -1000,10 +1020,6 @@ class Handler(http.server.BaseHTTPRequestHandler):
                        or kw in j.get("description", "").lower()
                        or kw in j.get("dept", "").lower()]
 
-        # Apply filters BEFORE stats so every count matches the list dataset.
-        if days > 0:
-            all_jobs = [j for j in all_jobs if j["_days_ago"] < days]
-
         city_set = set()
         for j in all_jobs:
             for c in re.split(r"[,，]", str(j.get("location", "") or "")):
@@ -1019,10 +1035,11 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if category:
             all_jobs = [j for j in all_jobs if j.get("_category") == category]
 
-        stat_today = sum(1 for j in all_jobs if j["_days_ago"] == 0)
-        stat_3day = sum(1 for j in all_jobs if j["_days_ago"] < 3)
-        stat_7day = sum(1 for j in all_jobs if j["_days_ago"] < 7)
-        stat_30day = sum(1 for j in all_jobs if j["_days_ago"] < 30)
+        # Metric cards are global and never follow request filters.
+        stat_today, stat_3day, stat_7day, stat_30day = _global_time_stats()
+
+        if days > 0:
+            all_jobs = [j for j in all_jobs if j["_days_ago"] < days]
 
         for _cid in company_stats:
             company_stats[_cid]["count"] = sum(1 for j in all_jobs if j.get("_company_id") == _cid)
