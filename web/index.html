@@ -670,6 +670,7 @@ const state = {
   jobs: [],
   allCities: [],
   loading: false,
+  _dataReceived: false,
   retryCount: 0,
   page: 1,
   pageSize: 200,
@@ -801,6 +802,7 @@ async function fetchData() {
     } catch(e) {}
   }
   state.loading = true;
+  state._dataReceived = false;
   state.page = 1; state.selectedJob = null; renderDetail();
   const area = document.getElementById('jobsTableArea');
   const compName = state.company ? COMPANIES[state.company].name : '全部公司';
@@ -815,6 +817,7 @@ async function fetchData() {
     const res = await fetch(`/api/jobs?${params}`);
     const data = await res.json();
     state.jobs = data.jobs || [];
+    state._dataReceived = true;
     state._totalJobs = data.total || data.jobs.length || 0;
     state._truncated = data.truncated || false;
     state._errors = data.errors || {};
@@ -962,8 +965,7 @@ function renderTable(jobs) {
   populateCategories(jobs);
   const area = document.getElementById('jobsTableArea');
   if (!jobs || jobs.length === 0) {
-    if (!state.jobs.length && !state.loading) {
-    // Check if initial refresh might still be running
+    if (!state._dataReceived) {
     area.innerHTML = `<div class="loading"><div class="spinner"></div><p>正在获取最新岗位数据，预计30秒内完成...</p><p style="font-size:12px;color:#999;margin-top:8px;">首次启动需从各企业招聘系统拉取数据</p></div>
     `;
     return;
